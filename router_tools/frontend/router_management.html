@@ -1,0 +1,2460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Router Management Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            padding: 40px;
+        }
+        
+        .sidebar {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            height: fit-content;
+        }
+        
+        .content-area {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 30px;
+            min-height: 600px;
+        }
+        
+        .card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card h3::before {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        .router-card h3::before { content: "🌐"; }
+        .command-card h3::before { content: "⚡"; }
+        .config-card h3::before { content: "⚙️"; }
+        .logs-card h3::before { content: "📊"; }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .input-field {
+            flex: 1;
+        }
+        
+        .input-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .input-field input, .input-field select, .input-field textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-field input:focus, .input-field select:focus, .input-field textarea:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .input-field textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%);
+            color: #333;
+        }
+        
+        .router-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .router-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .router-info h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+        }
+        
+        .router-info p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .router-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .router-actions .btn {
+            padding: 8px 15px;
+            font-size: 12px;
+            margin: 0;
+        }
+        
+        .status-connected {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .status-disconnected {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .result {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .result.success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .result.error {
+            border-left: 4px solid #dc3545;
+            background: #f8d7da;
+        }
+        
+        .result h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .output {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+            overflow-x: auto;
+            margin-top: 15px;
+            border: 1px solid #333;
+            position: relative;
+        }
+        
+        .output-container {
+            position: relative;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(102, 126, 234, 0.8);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        .copy-btn:hover {
+            background: rgba(102, 126, 234, 1);
+        }
+        
+        .expand-btn {
+            background: rgba(255, 193, 7, 0.8);
+            color: #333;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 10px;
+            margin-right: 10px;
+        }
+        
+        .expand-btn:hover {
+            background: rgba(255, 193, 7, 1);
+        }
+        
+        .output.expanded {
+            max-height: 80vh;
+            position: fixed;
+            top: 10%;
+            left: 10%;
+            right: 10%;
+            bottom: 10%;
+            z-index: 1000;
+            background: #000;
+            border: 3px solid #667eea;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+        }
+        
+        .output.expanded::before {
+            content: "Press ESC to minimize";
+            position: absolute;
+            top: -30px;
+            left: 0;
+            color: #667eea;
+            font-size: 12px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #667eea;
+        }
+        
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6c757d;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* SSH Device Styles */
+        .device-card {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .device-card:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .device-card.selected {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-color: #2196f3;
+            border-width: 2px;
+        }
+        
+        .device-card.reachable {
+            border-left: 4px solid #4caf50;
+        }
+        
+        .device-card.unreachable {
+            border-left: 4px solid #f44336;
+            opacity: 0.7;
+        }
+        
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .device-name {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2d3748;
+        }
+        
+        .device-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .device-status.reachable {
+            background: #4caf50;
+        }
+        
+        .device-status.unreachable {
+            background: #f44336;
+        }
+        
+        .device-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        
+        .device-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .device-actions .btn {
+            padding: 6px 12px;
+            font-size: 0.8em;
+        }
+        
+        .search-highlight {
+            background: yellow;
+            font-weight: bold;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-row {
+                flex-direction: column;
+            }
+            
+            .device-info {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Router Management Tools</h1>
+            <p>SSH Connection, Configuration, and Log Management</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Sidebar - Router Connection -->
+            <div class="sidebar">
+                <div class="card router-card">
+                    <h3>Router Connection</h3>
+                    <div class="input-group">
+                        <div class="input-field">
+                            <label for="router-name">Router Name:</label>
+                            <input type="text" id="router-name" placeholder="e.g., cisco_r1" value="test_router">
+                        </div>
+                        <div class="input-row">
+                            <div class="input-field">
+                                <label for="router-host">IP Address:</label>
+                                <input type="text" id="router-host" placeholder="192.168.1.1" value="192.168.1.1">
+                            </div>
+                            <div class="input-field">
+                                <label for="router-port">Port:</label>
+                                <input type="number" id="router-port" value="22" min="1" max="65535">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="input-field">
+                                <label for="router-username">Username:</label>
+                                <input type="text" id="router-username" placeholder="admin" value="admin">
+                            </div>
+                            <div class="input-field">
+                                <label for="router-password">Password:</label>
+                                <input type="password" id="router-password" placeholder="password">
+                            </div>
+                        </div>
+                        <div class="input-field">
+                            <label for="device-type">Device Type (Optional):</label>
+                            <select id="device-type">
+                                <option value="">Auto Detect</option>
+                                <option value="cisco_ios">Cisco IOS</option>
+                                <option value="cisco_ios_xe">Cisco IOS XE</option>
+                                <option value="mikrotik">MikroTik</option>
+                                <option value="huawei">Huawei</option>
+                                <option value="generic">Generic</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="connectRouter()">🔗 Connect Router</button>
+                    <button class="btn btn-warning" onclick="refreshRouterList()">🔄 Refresh</button>
+                    <div class="loading" id="connect-loading">Connecting...</div>
+                    <div class="result" id="connect-result"></div>
+                </div>
+                
+                <!-- Internet Connectivity Tester -->
+                <div class="card">
+                    <h3>🌍 Internet Test</h3>
+                    <div class="input-group">
+                        <div class="input-field">
+                            <label for="test-host">Test Host:</label>
+                            <input type="text" id="test-host" placeholder="google.com" value="8.8.8.8">
+                        </div>
+                    </div>
+                    <button class="btn btn-success" onclick="testInternet()">🚀 Test Internet</button>
+                    <div class="loading" id="internet-loading">Testing...</div>
+                    <div class="result" id="internet-result"></div>
+                </div>
+
+                <!-- Connected Routers List -->
+                <div class="card">
+                    <h3>Connected Routers</h3>
+                    <div class="router-list" id="router-list">
+                        <p style="text-align: center; color: #6c757d; margin: 20px 0;">No routers connected</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content Area -->
+            <div class="content-area">
+                <div class="tabs">
+                    <button class="tab active" onclick="showTab('commands')">Commands</button>
+                    <button class="tab" onclick="showTab('config')">Configuration</button>
+                    <button class="tab" onclick="showTab('logs')">Logs & Info</button>
+                    <button class="tab" onclick="showTab('backup')">Backup</button>
+                    <button class="tab" onclick="showTab('vmanage')">vManage</button>
+                    <button class="tab" onclick="showTab('ssh-devices')">🔐 SSH Devices</button>
+                </div>
+                
+                <!-- Commands Tab -->
+                <div class="tab-content active" id="commands-tab">
+                    <div class="card command-card">
+                        <h3>Execute Commands</h3>
+                        <div class="input-group">
+                            <div class="input-field">
+                                <label for="command-router">Select Router:</label>
+                                <select id="command-router">
+                                    <option value="">-- Select Router --</option>
+                                </select>
+                            </div>
+                            <div class="input-field">
+                                <label for="command-input">Command:</label>
+                                <input type="text" id="command-input" placeholder="show version">
+                            </div>
+                        </div>
+                        <button class="btn" onclick="executeCommand()">⚡ Execute</button>
+                        <button class="btn btn-warning" onclick="clearCommandOutput()">🗑️ Clear</button>
+                        
+                        <!-- Quick Commands -->
+                        <div style="margin-top: 15px;">
+                            <p><strong>Basic Commands:</strong></p>
+                            <button class="btn" onclick="quickCommand('show version')">Version</button>
+                            <button class="btn" onclick="quickCommand('show running-config')">Running Config</button>
+                            <button class="btn" onclick="quickCommand('show ip interface brief')">Interfaces</button>
+                            <button class="btn" onclick="quickCommand('show ip route')">Routes</button>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <p><strong>IOS XE Commands:</strong></p>
+                            <button class="btn" onclick="quickCommand('show platform')">Platform</button>
+                            <button class="btn" onclick="quickCommand('show license summary')">License</button>
+                            <button class="btn" onclick="quickCommand('show environment all')">Environment</button>
+                            <button class="btn" onclick="quickCommand('show processes cpu sorted')">CPU Usage</button>
+                            <button class="btn" onclick="quickCommand('show memory statistics')">Memory</button>
+                            <button class="btn" onclick="quickCommand('show redundancy')">Redundancy</button>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <p><strong>Network Commands:</strong></p>
+                            <button class="btn" onclick="quickCommand('show cdp neighbors detail')">CDP Neighbors</button>
+                            <button class="btn" onclick="quickCommand('show lldp neighbors detail')">LLDP Neighbors</button>
+                            <button class="btn" onclick="quickCommand('show vlan brief')">VLAN</button>
+                            <button class="btn" onclick="quickCommand('show spanning-tree summary')">STP</button>
+                            <button class="btn" onclick="quickCommand('show etherchannel summary')">EtherChannel</button>
+                            <button class="btn" onclick="quickCommand('show standby brief')">HSRP</button>
+                        </div>
+                        
+                        <div style="margin-top: 15px;">
+                            <p><strong>Routing Commands:</strong></p>
+                            <button class="btn" onclick="quickCommand('show ip bgp summary')">BGP Summary</button>
+                            <button class="btn" onclick="quickCommand('show ip ospf neighbor')">OSPF Neighbors</button>
+                            <button class="btn" onclick="quickCommand('show ip eigrp neighbors')">EIGRP Neighbors</button>
+                            <button class="btn" onclick="quickCommand('show vrf')">VRF</button>
+                        </div>
+                        
+                        <div class="loading" id="command-loading">Executing command...</div>
+                        <div class="result" id="command-result"></div>
+                    </div>
+                </div>
+                
+                <!-- Configuration Tab -->
+                <div class="tab-content" id="config-tab">
+                    <div class="card config-card">
+                        <h3>Router Configuration</h3>
+                        <div class="input-group">
+                            <div class="input-field">
+                                <label for="config-router">Select Router:</label>
+                                <select id="config-router">
+                                    <option value="">-- Select Router --</option>
+                                </select>
+                            </div>
+                            <div class="input-field">
+                                <label for="config-commands">Configuration Commands (one per line):</label>
+                                <textarea id="config-commands" placeholder="interface GigabitEthernet0/0/1&#10;description LAN Interface&#10;ip address 192.168.1.1 255.255.255.0&#10;no shutdown"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Config Examples -->
+                        <div style="margin-bottom: 15px;">
+                            <p><strong>Quick Config Examples:</strong></p>
+                            <button class="btn" onclick="loadConfigExample('interface')">Interface Config</button>
+                            <button class="btn" onclick="loadConfigExample('vlan')">VLAN Config</button>
+                            <button class="btn" onclick="loadConfigExample('routing')">Static Route</button>
+                            <button class="btn" onclick="loadConfigExample('hsrp')">HSRP Config</button>
+                            <button class="btn" onclick="loadConfigExample('acl')">Access List</button>
+                        </div>
+                        
+                        <div class="input-group">
+                        </div>
+                        <button class="btn btn-warning" onclick="sendConfig()">⚙️ Send Configuration</button>
+                        <button class="btn btn-danger" onclick="clearConfigOutput()">🗑️ Clear</button>
+                        
+                        <div class="loading" id="config-loading">Sending configuration...</div>
+                        <div class="result" id="config-result"></div>
+                    </div>
+                </div>
+                
+                <!-- Logs Tab -->
+                <div class="tab-content" id="logs-tab">
+                    <div class="card logs-card">
+                        <h3>Router Information & Logs</h3>
+                        <div class="input-group">
+                            <div class="input-row">
+                                <div class="input-field">
+                                    <label for="logs-router">Select Router:</label>
+                                    <select id="logs-router">
+                                        <option value="">-- Select Router --</option>
+                                    </select>
+                                </div>
+                                <div class="input-field">
+                                    <label for="log-type">Log Type:</label>
+                                    <select id="log-type">
+                                        <option value="all">All Logs</option>
+                                        <option value="system">System</option>
+                                        <option value="interface">Interface</option>
+                                        <option value="routing">Routing</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn" onclick="getRouterInfo()">📊 Get Router Info</button>
+                        <button class="btn" onclick="getRouterLogs()">📋 Get Logs</button>
+                        <button class="btn btn-warning" onclick="clearLogsOutput()">🗑️ Clear</button>
+                        
+                        <div class="loading" id="logs-loading">Getting information...</div>
+                        <div class="result" id="logs-result"></div>
+                    </div>
+                </div>
+                
+                <!-- Backup Tab -->
+                <div class="tab-content" id="backup-tab">
+                    <div class="card">
+                        <h3>Configuration Backup</h3>
+                        <div class="input-group">
+                            <div class="input-field">
+                                <label for="backup-router">Select Router:</label>
+                                <select id="backup-router">
+                                    <option value="">-- Select Router --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" onclick="backupConfig()">💾 Backup Configuration</button>
+                        <button class="btn btn-warning" onclick="clearBackupOutput()">🗑️ Clear</button>
+                        
+                        <div class="loading" id="backup-loading">Creating backup...</div>
+                        <div class="result" id="backup-result"></div>
+                    </div>
+                </div>
+                
+                <!-- vManage Tab -->
+                <div class="tab-content" id="vmanage-tab">
+                    <div class="card">
+                        <h3>🌐 Cisco SD-WAN vManage Integration</h3>
+                        
+                        <!-- vManage Connection -->
+                        <div class="card">
+                            <h4>vManage Connection</h4>
+                            <div class="input-group">
+                                <div class="input-row">
+                                    <div class="input-field">
+                                        <label for="vmanage-name">vManage Name:</label>
+                                        <input type="text" id="vmanage-name" placeholder="Primary_vManage" value="primary">
+                                    </div>
+                                    <div class="input-field">
+                                        <label for="vmanage-host">vManage Host:</label>
+                                        <input type="text" id="vmanage-host" placeholder="36.67.62.248" value="36.67.62.248">
+                                    </div>
+                                </div>
+                                <div class="input-row">
+                                    <div class="input-field">
+                                        <label for="vmanage-username">Username:</label>
+                                        <input type="text" id="vmanage-username" placeholder="admin" value="admin">
+                                    </div>
+                                    <div class="input-field">
+                                        <label for="vmanage-password">Password:</label>
+                                        <input type="password" id="vmanage-password" placeholder="password">
+                                    </div>
+                                    <div class="input-field">
+                                        <label for="vmanage-port">Port:</label>
+                                        <input type="number" id="vmanage-port" value="443" min="1" max="65535">
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn" onclick="connectVManage()">🔗 Connect vManage</button>
+                            <button class="btn btn-warning" onclick="refreshVManageList()">🔄 Refresh</button>
+                            <div class="loading" id="vmanage-connect-loading">Connecting to vManage...</div>
+                            <div class="result" id="vmanage-connect-result"></div>
+                        </div>
+                        
+                        <!-- vManage Devices -->
+                        <div class="card">
+                            <h4>SD-WAN Devices</h4>
+                            <div class="input-group">
+                                <div class="input-field">
+                                    <label for="vmanage-select">Select vManage:</label>
+                                    <select id="vmanage-select">
+                                        <option value="">-- Select vManage --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn" onclick="getVManageDevices()">📱 Get Devices</button>
+                            <button class="btn" onclick="getVManageTemplates()">📋 Get Templates</button>
+                            <div class="loading" id="vmanage-devices-loading">Loading devices...</div>
+                            <div class="result" id="vmanage-devices-result"></div>
+                        </div>
+                        
+                        <!-- Device Details -->
+                        <div class="card">
+                            <h4>Device Details</h4>
+                            <div class="input-group">
+                                <div class="input-row">
+                                    <div class="input-field">
+                                        <label for="vmanage-device-select">Select vManage:</label>
+                                        <select id="vmanage-device-select">
+                                            <option value="">-- Select vManage --</option>
+                                        </select>
+                                    </div>
+                                    <div class="input-field">
+                                        <label for="device-id">Device ID:</label>
+                                        <input type="text" id="device-id" placeholder="169.254.10.1">
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn" onclick="getDeviceDetails()">🔍 Get Device Details</button>
+                            <div class="loading" id="device-details-loading">Loading device details...</div>
+                            <div class="result" id="device-details-result"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SSH Devices Tab -->
+        <div class="tab-content" id="ssh-devices-tab">
+            <div class="card">
+                <h3>🔐 SSH to Edge Devices</h3>
+                <p>Connect to SD-WAN edge devices via SSH using their system IP addresses</p>
+                
+                <!-- vManage Connection Status -->
+                <div class="card" style="background: #f8f9fa; border-left: 4px solid #007bff;">
+                    <h4>📡 Connection Status</h4>
+                    <div class="input-group">
+                        <div class="input-field">
+                            <label for="ssh-vmanage-select">vManage Connection:</label>
+                            <select id="ssh-vmanage-select">
+                                <option value="">-- Select vManage --</option>
+                            </select>
+                        </div>
+                        <div class="input-field">
+                            <label for="ssh-tenant-select">Active Tenant:</label>
+                            <select id="ssh-tenant-select">
+                                <option value="">-- No Tenant Selected --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="loadSSHDevices()">🔄 Load Edge Devices</button>
+                </div>
+                
+                <!-- Device Search and Filter -->
+                <div class="card">
+                    <h4>🔍 Device Search & Filter</h4>
+                    <div class="input-group">
+                        <div class="input-row">
+                            <div class="input-field">
+                                <label for="device-search">Search Devices:</label>
+                                <input type="text" id="device-search" placeholder="Search by hostname, IP, or site..." onkeyup="filterDevices()">
+                            </div>
+                            <div class="input-field">
+                                <label for="device-filter">Filter by Status:</label>
+                                <select id="device-filter" onchange="filterDevices()">
+                                    <option value="all">All Devices</option>
+                                    <option value="reachable">Reachable Only</option>
+                                    <option value="unreachable">Unreachable Only</option>
+                                </select>
+                            </div>
+                            <div class="input-field">
+                                <label for="device-type-filter">Filter by Type:</label>
+                                <select id="device-type-filter" onchange="filterDevices()">
+                                    <option value="all">All Types</option>
+                                    <option value="vedge">vEdge</option>
+                                    <option value="cedge">cEdge</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result" id="device-count-result">No devices loaded</div>
+                </div>
+                
+                <!-- Device List -->
+                <div class="card">
+                    <h4>📱 Available Edge Devices</h4>
+                    <div class="loading" id="ssh-devices-loading" style="display: none;">Loading devices...</div>
+                    <div class="result" id="ssh-devices-list"></div>
+                </div>
+                
+                <!-- SSH Terminal -->
+                <div class="card">
+                    <h4>💻 SSH Terminal</h4>
+                    <div class="input-group">
+                        <div class="input-row">
+                            <div class="input-field">
+                                <label>Selected Device:</label>
+                                <input type="text" id="selected-device-info" readonly placeholder="No device selected">
+                            </div>
+                            <div class="input-field">
+                                <label for="ssh-username">SSH Username:</label>
+                                <input type="text" id="ssh-username" placeholder="admin" value="admin">
+                            </div>
+                            <div class="input-field">
+                                <label for="ssh-password">SSH Password:</label>
+                                <input type="password" id="ssh-password" placeholder="Enter SSH password">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button class="btn" onclick="connectSSHDevice()" id="ssh-connect-btn" disabled>🔐 Connect SSH</button>
+                        <button class="btn btn-warning" onclick="disconnectSSH()">❌ Disconnect</button>
+                        <button class="btn" onclick="clearSSHTerminal()">🗑️ Clear Terminal</button>
+                    </div>
+                    <div class="loading" id="ssh-connect-loading" style="display: none;">Connecting via SSH...</div>
+                    <div class="result" id="ssh-connection-result"></div>
+                    
+                    <!-- Terminal Output -->
+                    <div style="margin-top: 15px;">
+                        <label><strong>Terminal Output:</strong></label>
+                        <div class="terminal-output" id="ssh-terminal-output">
+                            <div class="terminal-line">Ready for SSH connection...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Command Input -->
+                    <div class="input-group" style="margin-top: 10px;">
+                        <div class="input-field">
+                            <label for="ssh-command">Command:</label>
+                            <input type="text" id="ssh-command" placeholder="Enter command (e.g., show version)" onkeypress="handleSSHCommand(event)" disabled>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="sendSSHCommand()" id="ssh-send-btn" disabled>▶️ Send Command</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let connectedRouters = [];
+        
+        // Tab Management
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Router Connection
+        async function connectRouter() {
+            const name = document.getElementById('router-name').value.trim();
+            const host = document.getElementById('router-host').value.trim();
+            const port = parseInt(document.getElementById('router-port').value);
+            const username = document.getElementById('router-username').value.trim();
+            const password = document.getElementById('router-password').value.trim();
+            const deviceType = document.getElementById('device-type').value;
+            
+            if (!name || !host || !username || !password) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('connect-loading');
+            const resultDiv = document.getElementById('connect-result');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/router/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        host: host,
+                        port: port,
+                        username: username,
+                        password: password,
+                        device_type: deviceType
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Connection Successful</h4>
+                        <p><strong>Router:</strong> ${name}</p>
+                        <p><strong>Host:</strong> ${host}</p>
+                        <p><strong>Device Type:</strong> ${data.device_type}</p>
+                        <p><strong>Message:</strong> ${data.message}</p>
+                    `;
+                    
+                    // Refresh router list
+                    await refreshRouterList();
+                    
+                    // Clear password field
+                    document.getElementById('router-password').value = '';
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Connection Failed</h4>
+                        <p><strong>Error:</strong> ${data.error}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Connection Error</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Refresh Router List
+        async function refreshRouterList() {
+            try {
+                const response = await fetch('/api/router/list');
+                const data = await response.json();
+                
+                if (data.success) {
+                    connectedRouters = data.routers;
+                    updateRouterList();
+                    updateRouterSelects();
+                }
+            } catch (error) {
+                console.error('Failed to refresh router list:', error);
+            }
+        }
+        
+        function updateRouterList() {
+            const listDiv = document.getElementById('router-list');
+            
+            if (connectedRouters.length === 0) {
+                listDiv.innerHTML = '<p style="text-align: center; color: #6c757d; margin: 20px 0;">No routers connected</p>';
+                return;
+            }
+            
+            let html = '';
+            connectedRouters.forEach(router => {
+                const statusClass = router.connected ? 'status-connected' : 'status-disconnected';
+                const statusText = router.connected ? 'Connected' : 'Disconnected';
+                
+                const actionButtons = router.connected 
+                    ? `<button class="btn btn-danger" onclick="disconnectRouter('${router.name}')">Disconnect</button>`
+                    : `<button class="btn btn-primary" onclick="reconnectRouter('${router.name}')">🔗 Connect</button>
+                       <button class="btn btn-secondary" onclick="configureRouter('${router.name}')">⚙️ Configure</button>
+                       <button class="btn btn-danger" onclick="disconnectRouter('${router.name}')">Remove</button>`;
+                
+                html += `
+                    <div class="router-item">
+                        <div class="router-info">
+                            <h4>${router.name}</h4>
+                            <p>${router.host} | ${router.device_type} | <span class="${statusClass}">${statusText}</span></p>
+                        </div>
+                        <div class="router-actions">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            listDiv.innerHTML = html;
+        }
+        
+        function updateRouterSelects() {
+            const selects = [
+                'command-router',
+                'config-router', 
+                'logs-router',
+                'backup-router'
+            ];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                select.innerHTML = '<option value="">-- Select Router --</option>';
+                
+                connectedRouters.forEach(router => {
+                    if (router.connected) {
+                        select.innerHTML += `<option value="${router.name}">${router.name} (${router.host})</option>`;
+                    }
+                });
+            });
+        }
+        
+        // Disconnect Router
+        async function disconnectRouter(routerName) {
+            if (!confirm(`Disconnect from router ${routerName}?`)) return;
+            
+            try {
+                const response = await fetch(`/api/router/${routerName}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    await refreshRouterList();
+                } else {
+                    alert('Failed to disconnect: ' + data.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // Reconnect Router
+        async function reconnectRouter(routerName) {
+            const router = connectedRouters.find(r => r.name === routerName);
+            if (!router) {
+                alert('Router not found');
+                return;
+            }
+            
+            // Prompt for credentials if needed
+            const password = prompt(`Enter password for ${routerName} (${router.host}):`);
+            if (!password) return;
+            
+            try {
+                const response = await fetch('/api/router/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: router.name,
+                        host: router.host,
+                        port: 22, // Default port
+                        username: prompt(`Username for ${routerName}:`) || 'admin',
+                        password: password,
+                        device_type: router.device_type
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Reconnected to ${routerName}`);
+                    await refreshRouterList();
+                } else {
+                    alert(`❌ Failed to reconnect: ${data.error}`);
+                }
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        // Configure Router
+        function configureRouter(routerName) {
+            // Find and fill router connection form
+            const router = connectedRouters.find(r => r.name === routerName);
+            if (!router) {
+                alert('Router not found');
+                return;
+            }
+            
+            // Fill form fields
+            document.getElementById('router-name').value = router.name;
+            document.getElementById('router-host').value = router.host;
+            document.getElementById('router-port').value = '22';
+            document.getElementById('device-type').value = router.device_type;
+            
+            // Focus on username field
+            document.getElementById('router-username').focus();
+            
+            alert(`Configure connection for ${routerName}. Please update credentials and click Connect.`);
+        }
+        
+        // Execute Command
+        async function executeCommand() {
+            const routerName = document.getElementById('command-router').value;
+            const command = document.getElementById('command-input').value.trim();
+            
+            if (!routerName || !command) {
+                alert('Please select router and enter command');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('command-loading');
+            const resultDiv = document.getElementById('command-result');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/router/command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        router_name: routerName,
+                        command: command
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const outputId = 'output-' + Date.now();
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Command Executed</h4>
+                        <p><strong>Router:</strong> ${routerName}</p>
+                        <p><strong>Command:</strong> ${data.command}</p>
+                        <div class="output-container">
+                            <button class="copy-btn" onclick="copyOutput('${outputId}')">📋 Copy</button>
+                            <div class="output" id="${outputId}">${data.output}</div>
+                        </div>
+                        <button class="expand-btn" onclick="expandOutput('${outputId}')">🔍 Expand View</button>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Command Failed</h4>
+                        <p><strong>Error:</strong> ${data.error}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Network Error</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Quick Command
+        function quickCommand(command) {
+            document.getElementById('command-input').value = command;
+        }
+        
+        // Load Config Examples
+        function loadConfigExample(type) {
+            const configTextarea = document.getElementById('config-commands');
+            let config = '';
+            
+            switch(type) {
+                case 'interface':
+                    config = `interface GigabitEthernet0/0/1
+description LAN Interface
+ip address 192.168.1.1 255.255.255.0
+duplex auto
+speed auto
+no shutdown`;
+                    break;
+                    
+                case 'vlan':
+                    config = `vlan 100
+name SALES
+exit
+vlan 200
+name ENGINEERING
+exit
+interface GigabitEthernet0/0/1
+switchport mode access
+switchport access vlan 100`;
+                    break;
+                    
+                case 'routing':
+                    config = `ip route 10.0.0.0 255.0.0.0 192.168.1.254
+ip route 172.16.0.0 255.240.0.0 192.168.1.254
+ip route 0.0.0.0 0.0.0.0 192.168.1.254`;
+                    break;
+                    
+                case 'hsrp':
+                    config = `interface GigabitEthernet0/0/1
+ip address 192.168.1.2 255.255.255.0
+standby 1 ip 192.168.1.1
+standby 1 priority 110
+standby 1 preempt
+standby 1 track GigabitEthernet0/0/0 20`;
+                    break;
+                    
+                case 'acl':
+                    config = `ip access-list extended BLOCK_FACEBOOK
+deny tcp any host 157.240.0.0 eq 80
+deny tcp any host 157.240.0.0 eq 443
+permit ip any any
+exit
+interface GigabitEthernet0/0/1
+ip access-group BLOCK_FACEBOOK in`;
+                    break;
+                    
+                default:
+                    config = 'Select a configuration example above';
+            }
+            
+            configTextarea.value = config;
+        }
+        
+        // Send Configuration
+        async function sendConfig() {
+            const routerName = document.getElementById('config-router').value;
+            const commandsText = document.getElementById('config-commands').value.trim();
+            
+            if (!routerName || !commandsText) {
+                alert('Please select router and enter configuration commands');
+                return;
+            }
+            
+            const commands = commandsText.split('\n').filter(cmd => cmd.trim());
+            
+            const loadingDiv = document.getElementById('config-loading');
+            const resultDiv = document.getElementById('config-result');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/router/config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        router_name: routerName,
+                        commands: commands
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    let outputHtml = `
+                        <h4>✅ Configuration Sent</h4>
+                        <p><strong>Router:</strong> ${routerName}</p>
+                        <p><strong>Commands:</strong> ${data.commands.length}</p>
+                    `;
+                    
+                    data.results.forEach((result, index) => {
+                        if (result.output) {
+                            const outputId = 'config-output-' + Date.now() + '-' + index;
+                            outputHtml += `
+                                <div class="output-container">
+                                    <button class="copy-btn" onclick="copyOutput('${outputId}')">📋 Copy</button>
+                                    <div class="output" id="${outputId}">Command ${index + 1}: ${result.command || ''}\n${result.output}</div>
+                                </div>
+                                <button class="expand-btn" onclick="expandOutput('${outputId}')">🔍 Expand View</button>
+                            `;
+                        }
+                    });
+                    
+                    resultDiv.innerHTML = outputHtml;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Configuration Failed</h4>
+                        <p><strong>Error:</strong> ${data.error}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Network Error</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Get Router Info
+        async function getRouterInfo() {
+            const routerName = document.getElementById('logs-router').value;
+            
+            if (!routerName) {
+                alert('Please select a router');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('logs-loading');
+            const resultDiv = document.getElementById('logs-result');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/router/${routerName}/info`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>📊 Router Information</h4>
+                        <p><strong>Router:</strong> ${data.router_name}</p>
+                        <p><strong>Host:</strong> ${data.host}</p>
+                        <p><strong>Device Type:</strong> ${data.device_type}</p>
+                        
+                        <h5>Version Info:</h5>
+                        <div class="output-container">
+                            <button class="copy-btn" onclick="copyOutput('version-info')">📋 Copy</button>
+                            <div class="output" id="version-info">${data.version_info.output || 'No version info available'}</div>
+                        </div>
+                        <button class="expand-btn" onclick="expandOutput('version-info')">🔍 Expand Version</button>
+                        
+                        <h5>Interface Info:</h5>
+                        <div class="output-container">
+                            <button class="copy-btn" onclick="copyOutput('interface-info')">📋 Copy</button>
+                            <div class="output" id="interface-info">${data.interfaces_info.output || 'No interface info available'}</div>
+                        </div>
+                        <button class="expand-btn" onclick="expandOutput('interface-info')">🔍 Expand Interface</button>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Failed to Get Info</h4>
+                        <p><strong>Error:</strong> ${data.error}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Network Error</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Get Router Logs
+        async function getRouterLogs() {
+            const routerName = document.getElementById('logs-router').value;
+            const logType = document.getElementById('log-type').value;
+            
+            if (!routerName) {
+                alert('Please select a router');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('logs-loading');
+            const resultDiv = document.getElementById('logs-result');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/router/${routerName}/logs?log_type=${logType}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    let outputHtml = `
+                        <h4>📋 Router Logs</h4>
+                        <p><strong>Router:</strong> ${data.router_name}</p>
+                        <p><strong>Log Type:</strong> ${data.log_type}</p>
+                    `;
+                    
+                    Object.keys(data.logs).forEach(logName => {
+                        const log = data.logs[logName];
+                        if (log.success && log.output) {
+                            const outputId = 'log-' + logName + '-' + Date.now();
+                            outputHtml += `
+                                <h5>${logName.toUpperCase()}:</h5>
+                                <div class="output-container">
+                                    <button class="copy-btn" onclick="copyOutput('${outputId}')">📋 Copy</button>
+                                    <div class="output" id="${outputId}">${log.output}</div>
+                                </div>
+                                <button class="expand-btn" onclick="expandOutput('${outputId}')">🔍 Expand ${logName}</button>
+                            `;
+                        }
+                    });
+                    
+                    resultDiv.innerHTML = outputHtml;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Failed to Get Logs</h4>
+                        <p><strong>Error:</strong> ${data.error}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Network Error</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Backup Configuration
+        async function backupConfig() {
+            const routerName = document.getElementById('backup-router').value;
+            
+            if (!routerName) {
+                alert('Please select a router');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('backup-loading');
+            const resultDiv = document.getElementById('backup-result');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch(`/api/router/${routerName}/backup`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>💾 Backup Successful</h4>
+                        <p><strong>Router:</strong> ${data.router_name}</p>
+                        <p><strong>File:</strong> ${data.filename}</p>
+                        <p><strong>Path:</strong> ${data.filepath}</p>
+                        <p><strong>Message:</strong> ${data.message}</p>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Backup Failed</h4>
+                        <p><strong>Error:</strong> ${data.error}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Network Error</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Clear Functions
+        function clearCommandOutput() {
+            document.getElementById('command-result').style.display = 'none';
+            document.getElementById('command-input').value = '';
+        }
+        
+        function clearConfigOutput() {
+            document.getElementById('config-result').style.display = 'none';
+            document.getElementById('config-commands').value = '';
+        }
+        
+        function clearLogsOutput() {
+            document.getElementById('logs-result').style.display = 'none';
+        }
+        
+        function clearBackupOutput() {
+            document.getElementById('backup-result').style.display = 'none';
+        }
+        
+        // Test Internet Connectivity
+        async function testInternet() {
+            const host = document.getElementById('test-host').value.trim() || '8.8.8.8';
+            const loadingDiv = document.getElementById('internet-loading');
+            const resultDiv = document.getElementById('internet-result');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                // Test ping first
+                const pingResponse = await fetch('/api/ping', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        host: host,
+                        count: 4
+                    })
+                });
+                
+                const pingData = await pingResponse.json();
+                
+                // Test traceroute
+                const traceResponse = await fetch('/api/traceroute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        host: host,
+                        max_hops: 10
+                    })
+                });
+                
+                const traceData = await traceResponse.json();
+                
+                // Display results
+                if (pingData.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Internet Connection OK</h4>
+                        <p><strong>Target:</strong> ${host}</p>
+                        <p><strong>Ping Success:</strong> ${pingData.packets_received}/${pingData.packets_sent} packets</p>
+                        <p><strong>Average Time:</strong> ${pingData.avg_time_ms || 'N/A'}ms</p>
+                        <p><strong>Packet Loss:</strong> ${pingData.packet_loss_percent.toFixed(1)}%</p>
+                        ${traceData.success ? `<p><strong>Traceroute Hops:</strong> ${traceData.total_hops}</p>` : ''}
+                        
+                        <div style="margin-top: 15px;">
+                            <button class="btn" onclick="testCommonSites()">🌐 Test Common Sites</button>
+                            <button class="btn btn-warning" onclick="testDNS()">🔍 Test DNS</button>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Internet Connection Failed</h4>
+                        <p><strong>Target:</strong> ${host}</p>
+                        <p><strong>Error:</strong> ${pingData.error}</p>
+                        <div style="margin-top: 15px;">
+                            <button class="btn" onclick="testLocalNetwork()">🏠 Test Local Network</button>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Test Failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Test Common Sites
+        async function testCommonSites() {
+            const sites = ['google.com', 'cloudflare.com', '8.8.8.8', '1.1.1.1'];
+            const resultDiv = document.getElementById('internet-result');
+            
+            resultDiv.innerHTML = `
+                <h4>🌐 Testing Common Sites...</h4>
+                <div id="sites-results"></div>
+            `;
+            
+            const sitesResultsDiv = document.getElementById('sites-results');
+            
+            for (const site of sites) {
+                try {
+                    const response = await fetch('/api/ping', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            host: site,
+                            count: 2
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    const status = data.success ? '✅' : '❌';
+                    const time = data.success ? `${data.avg_time_ms || 'N/A'}ms` : 'Failed';
+                    
+                    sitesResultsDiv.innerHTML += `
+                        <p>${status} <strong>${site}</strong> - ${time}</p>
+                    `;
+                } catch (error) {
+                    sitesResultsDiv.innerHTML += `
+                        <p>❌ <strong>${site}</strong> - Error: ${error.message}</p>
+                    `;
+                }
+            }
+        }
+        
+        // Test DNS
+        async function testDNS() {
+            const dnsServers = ['8.8.8.8', '1.1.1.1', '208.67.222.222'];
+            const resultDiv = document.getElementById('internet-result');
+            
+            resultDiv.innerHTML = `
+                <h4>🔍 Testing DNS Servers...</h4>
+                <div id="dns-results"></div>
+            `;
+            
+            const dnsResultsDiv = document.getElementById('dns-results');
+            
+            for (const dns of dnsServers) {
+                try {
+                    const response = await fetch('/api/ping', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            host: dns,
+                            count: 2
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    const status = data.success ? '✅' : '❌';
+                    const time = data.success ? `${data.avg_time_ms || 'N/A'}ms` : 'Failed';
+                    
+                    dnsResultsDiv.innerHTML += `
+                        <p>${status} <strong>${dns}</strong> - ${time}</p>
+                    `;
+                } catch (error) {
+                    dnsResultsDiv.innerHTML += `
+                        <p>❌ <strong>${dns}</strong> - Error: ${error.message}</p>
+                    `;
+                }
+            }
+        }
+        
+        // Test Local Network
+        async function testLocalNetwork() {
+            const localHosts = ['192.168.1.1', '192.168.0.1', '10.0.0.1'];
+            const resultDiv = document.getElementById('internet-result');
+            
+            resultDiv.innerHTML = `
+                <h4>🏠 Testing Local Network...</h4>
+                <div id="local-results"></div>
+            `;
+            
+            const localResultsDiv = document.getElementById('local-results');
+            
+            for (const host of localHosts) {
+                try {
+                    const response = await fetch('/api/ping', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            host: host,
+                            count: 2
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    const status = data.success ? '✅' : '❌';
+                    const time = data.success ? `${data.avg_time_ms || 'N/A'}ms` : 'Failed';
+                    
+                    localResultsDiv.innerHTML += `
+                        <p>${status} <strong>${host}</strong> - ${time}</p>
+                    `;
+                } catch (error) {
+                    localResultsDiv.innerHTML += `
+                        <p>❌ <strong>${host}</strong> - Error: ${error.message}</p>
+                    `;
+                }
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshRouterList();
+        });
+        
+        // Enter key handlers
+        document.getElementById('router-password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') connectRouter();
+        });
+        
+        document.getElementById('command-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') executeCommand();
+        });
+        
+        document.getElementById('test-host').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') testInternet();
+        });
+        
+        // Copy Output Function
+        function copyOutput(outputId) {
+            const outputElement = document.getElementById(outputId);
+            const text = outputElement.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Show temporary success message
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = 'rgba(40, 167, 69, 0.8)';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = 'rgba(102, 126, 234, 0.8)';
+                }, 2000);
+            }).catch(function(err) {
+                alert('Failed to copy: ' + err);
+            });
+        }
+        
+        // Expand Output Function
+        function expandOutput(outputId) {
+            const outputElement = document.getElementById(outputId);
+            
+            if (outputElement.classList.contains('expanded')) {
+                // Minimize
+                outputElement.classList.remove('expanded');
+                document.body.style.overflow = 'auto';
+            } else {
+                // Expand
+                outputElement.classList.add('expanded');
+                document.body.style.overflow = 'hidden';
+                
+                // Add ESC key listener to minimize
+                const escHandler = function(e) {
+                    if (e.key === 'Escape') {
+                        outputElement.classList.remove('expanded');
+                        document.body.style.overflow = 'auto';
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                };
+                document.addEventListener('keydown', escHandler);
+                
+                // Add click outside to minimize  
+                const clickHandler = function(e) {
+                    if (e.target === outputElement || outputElement.contains(e.target)) {
+                        return;
+                    }
+                    outputElement.classList.remove('expanded');
+                    document.body.style.overflow = 'auto';
+                    document.removeEventListener('click', clickHandler);
+                    document.removeEventListener('keydown', escHandler);
+                };
+                setTimeout(() => {
+                    document.addEventListener('click', clickHandler);
+                }, 100);
+            }
+        }
+        
+        // ==================== VMANAGE FUNCTIONS ====================
+        
+        // vManage Connection
+        async function connectVManage() {
+            const name = document.getElementById('vmanage-name').value.trim();
+            const host = document.getElementById('vmanage-host').value.trim();
+            const username = document.getElementById('vmanage-username').value.trim();
+            const password = document.getElementById('vmanage-password').value.trim();
+            const port = parseInt(document.getElementById('vmanage-port').value);
+            
+            if (!name || !host || !username || !password) {
+                alert('Please fill all required fields');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('vmanage-connect-loading');
+            const resultDiv = document.getElementById('vmanage-connect-result');
+            
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/vmanage/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        host: host,
+                        username: username,
+                        password: password,
+                        port: port
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ vManage Connected Successfully</h4>
+                        <p><strong>vManage:</strong> ${name}</p>
+                        <p><strong>Host:</strong> ${host}</p>
+                        <p><strong>Connected:</strong> ${data.timestamp}</p>
+                    `;
+                    
+                    // Refresh vManage lists and get tenants
+                    refreshVManageList();
+                    setTimeout(() => getVManageTenants(name), 1000);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <h4>❌ Connection Failed</h4>
+                        <p><strong>Error:</strong> ${data.error || 'Unknown error'}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Connection Error</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Get vManage Tenants
+        async function getVManageTenants(vmanageName = null) {
+            const name = vmanageName || document.getElementById('vmanage-select').value;
+            
+            if (!name) {
+                alert('Please select vManage first');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/vmanage/${name}/tenants`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const resultDiv = document.getElementById('vmanage-devices-result');
+                    
+                    if (data.tenants && data.tenants.length > 0) {
+                        let tenantsHtml = `<h4>🏢 Available Tenants (${data.count})</h4><div class="tenant-list">`;
+                        
+                        data.tenants.forEach(tenant => {
+                            tenantsHtml += `
+                                <div class="tenant-item" style="border: 1px solid #ddd; margin: 5px; padding: 10px; border-radius: 5px;">
+                                    <strong>Name:</strong> ${tenant.name || tenant.orgName || 'N/A'}<br>
+                                    <strong>ID:</strong> ${tenant.tenantId || tenant.id || 'N/A'}<br>
+                                    <strong>Description:</strong> ${tenant.desc || tenant.description || 'N/A'}<br>
+                                    ${tenant.subDomain ? `<strong>Domain:</strong> ${tenant.subDomain}<br>` : ''}
+                                    <button class="btn btn-sm" onclick="switchTenant('${name}', '${tenant.tenantId || tenant.id}')">Switch to Tenant</button>
+                                </div>
+                            `;
+                        });
+                        
+                        tenantsHtml += '</div>';
+                        resultDiv.innerHTML = tenantsHtml;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <h4>ℹ️ Single Tenant System</h4>
+                            <p>This vManage appears to be a single-tenant system.</p>
+                        `;
+                    }
+                    
+                    resultDiv.className = 'result success';
+                    resultDiv.style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Error getting tenants:', error);
+            }
+        }
+        
+        // Switch Tenant
+        async function switchTenant(vmanageName, tenantId) {
+            try {
+                const response = await fetch(`/api/vmanage/${vmanageName}/tenant/switch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        vmanage_name: vmanageName,
+                        tenant_id: tenantId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Successfully switched to tenant: ${tenantId}`);
+                    getVManageDevices();
+                } else {
+                    alert(`❌ Failed to switch tenant: ${data.error}`);
+                }
+                
+            } catch (error) {
+                alert(`❌ Error switching tenant: ${error.message}`);
+            }
+        }
+        
+        // Get vManage Devices
+        async function getVManageDevices() {
+            const vmanageName = document.getElementById('vmanage-select').value;
+            
+            if (!vmanageName) {
+                alert('Please select vManage first');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('vmanage-devices-loading');
+            const resultDiv = document.getElementById('vmanage-devices-result');
+            
+            loadingDiv.style.display = 'block';
+            
+            try {
+                // Fetch both regular and edge devices
+                const [devicesResponse, edgeDevicesResponse] = await Promise.all([
+                    fetch(`/api/vmanage/${vmanageName}/devices`),
+                    fetch(`/api/vmanage/${vmanageName}/edge-devices`)
+                ]);
+                
+                const devicesData = await devicesResponse.json();
+                const edgeDevicesData = await edgeDevicesResponse.json();
+                
+                let allDevices = [];
+                let deviceIds = new Set();
+                
+                // Add regular devices
+                if (devicesData.success && devicesData.devices) {
+                    devicesData.devices.forEach(device => {
+                        const deviceId = device['system-ip'] || device.deviceId || device['host-name'];
+                        if (deviceId && !deviceIds.has(deviceId)) {
+                            allDevices.push(device);
+                            deviceIds.add(deviceId);
+                        }
+                    });
+                }
+                
+                // Add edge devices (avoid duplicates)
+                if (edgeDevicesData.success && edgeDevicesData.devices) {
+                    edgeDevicesData.devices.forEach(device => {
+                        const deviceId = device['system-ip'] || device.deviceId || device['host-name'];
+                        if (deviceId && !deviceIds.has(deviceId)) {
+                            allDevices.push(device);
+                            deviceIds.add(deviceId);
+                        }
+                    });
+                }
+                
+                if (allDevices.length > 0) {
+                    // Sort devices by type (controllers first, then edges)
+                    allDevices.sort((a, b) => {
+                        const typeA = (a['device-type'] || '').toLowerCase();
+                        const typeB = (b['device-type'] || '').toLowerCase();
+                        
+                        const isControllerA = typeA.includes('vmanage') || typeA.includes('vsmart') || typeA.includes('vbond');
+                        const isControllerB = typeB.includes('vmanage') || typeB.includes('vsmart') || typeB.includes('vbond');
+                        
+                        if (isControllerA && !isControllerB) return -1;
+                        if (!isControllerA && isControllerB) return 1;
+                        return typeA.localeCompare(typeB);
+                    });
+                    
+                    let devicesHtml = `<h4>📱 SD-WAN Devices (${allDevices.length})</h4>`;
+                    
+                    allDevices.forEach(device => {
+                        const deviceType = device['device-type'] || device.deviceType || 'N/A';
+                        const isEdge = deviceType.toLowerCase().includes('vedge') || deviceType.toLowerCase().includes('cedge') || deviceType.toLowerCase().includes('edge');
+                        const isController = deviceType.toLowerCase().includes('vmanage') || deviceType.toLowerCase().includes('vsmart') || deviceType.toLowerCase().includes('vbond');
+                        
+                        let typeLabel = '';
+                        if (isController) typeLabel = '🎛️ Controller';
+                        else if (isEdge) typeLabel = '🏢 Edge Device';
+                        else typeLabel = '📱 Device';
+                        
+                        devicesHtml += `
+                            <div class="device-item" style="border: 1px solid #ddd; margin: 5px; padding: 10px; border-radius: 5px; ${isEdge ? 'border-left: 4px solid #007bff;' : isController ? 'border-left: 4px solid #28a745;' : ''}">
+                                <strong>Hostname:</strong> ${device['host-name'] || device.hostname || 'N/A'}<br>
+                                <strong>System IP:</strong> ${device['system-ip'] || device.deviceId || 'N/A'}<br>
+                                <strong>Device Type:</strong> ${typeLabel} ${deviceType}<br>
+                                <strong>Status:</strong> <span style="color: ${(device.reachability === 'reachable' || device.status === 'reachable') ? 'green' : 'red'}">${device.reachability || device.status || 'N/A'}</span><br>
+                                <strong>Version:</strong> ${device.version || 'N/A'}<br>
+                            </div>
+                        `;
+                    });
+                    
+                    resultDiv.innerHTML = devicesHtml;
+                    resultDiv.className = 'result success';
+                } else {
+                    let errorMsg = 'No devices found';
+                    if (!devicesData.success) errorMsg += ` (Main devices: ${devicesData.error || 'Failed'})`;
+                    if (!edgeDevicesData.success) errorMsg += ` (Edge devices: ${edgeDevicesData.error || 'Failed'})`;
+                    
+                    resultDiv.innerHTML = `<h4>❌ Failed to Get Devices</h4><p><strong>Error:</strong> ${errorMsg}</p>`;
+                    resultDiv.className = 'result error';
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<h4>❌ Error Getting Devices</h4><p><strong>Error:</strong> ${error.message}</p>`;
+                resultDiv.className = 'result error';
+            }
+            
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+        }
+        
+        // Refresh vManage List
+        async function refreshVManageList() {
+            try {
+                const response = await fetch('/api/vmanage/list');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const selects = ['vmanage-select', 'vmanage-device-select'];
+                    
+                    selects.forEach(selectId => {
+                        const select = document.getElementById(selectId);
+                        if (select) {
+                            select.innerHTML = '<option value="">-- Select vManage --</option>';
+                            
+                            data.vmanage_connections.forEach(name => {
+                                const option = document.createElement('option');
+                                option.value = name;
+                                option.textContent = name;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error refreshing vManage list:', error);
+            }
+        }
+        
+        // SSH Devices Functions
+        let sshDevices = [];
+        let filteredDevices = [];
+        let selectedDevice = null;
+        let sshConnection = null;
+        
+        async function loadSSHDevices() {
+            const vmanageName = document.getElementById('ssh-vmanage-select').value;
+            
+            if (!vmanageName) {
+                alert('Please select a vManage connection first');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('ssh-devices-loading');
+            const listDiv = document.getElementById('ssh-devices-list');
+            const countDiv = document.getElementById('device-count-result');
+            
+            loadingDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch(`/api/vmanage/${vmanageName}/devices`);
+                const data = await response.json();
+                
+                if (data.success && data.devices) {
+                    // Filter only edge devices (non-controller devices)
+                    sshDevices = data.devices.filter(device => {
+                        const deviceType = (device['device-type'] || '').toLowerCase();
+                        return !deviceType.includes('vmanage') && 
+                               !deviceType.includes('vsmart') && 
+                               !deviceType.includes('vbond');
+                    });
+                    
+                    filteredDevices = [...sshDevices];
+                    displaySSHDevices();
+                    updateDeviceCount();
+                    
+                    // Update vManage selector in SSH tab
+                    updateSSHVManageSelector();
+                } else {
+                    listDiv.innerHTML = `<div class="result error">Failed to load devices: ${data.error || 'Unknown error'}</div>`;
+                }
+                
+            } catch (error) {
+                listDiv.innerHTML = `<div class="result error">Error loading devices: ${error.message}</div>`;
+            }
+            
+            loadingDiv.style.display = 'none';
+        }
+        
+        function displaySSHDevices() {
+            const listDiv = document.getElementById('ssh-devices-list');
+            
+            if (filteredDevices.length === 0) {
+                listDiv.innerHTML = '<div class="result">No edge devices found or match your search criteria.</div>';
+                return;
+            }
+            
+            let devicesHTML = '';
+            
+            filteredDevices.forEach(device => {
+                const hostname = device['host-name'] || device.hostname || 'Unknown';
+                const systemIP = device['system-ip'] || device.deviceId || 'N/A';
+                const deviceType = device['device-type'] || device.deviceType || 'Unknown';
+                const status = device.reachability || device.status || 'unknown';
+                const version = device.version || 'N/A';
+                const siteId = device['site-id'] || device.siteId || 'N/A';
+                
+                const isReachable = status === 'reachable';
+                const statusClass = isReachable ? 'reachable' : 'unreachable';
+                const selectedClass = selectedDevice && selectedDevice['system-ip'] === systemIP ? 'selected' : '';
+                
+                devicesHTML += `
+                    <div class="device-card ${statusClass} ${selectedClass}" onclick="selectSSHDevice('${systemIP}', '${hostname}', '${deviceType}', '${status}')">
+                        <div class="device-header">
+                            <div class="device-name">${hostname}</div>
+                            <div class="device-status ${statusClass}">${status.toUpperCase()}</div>
+                        </div>
+                        <div class="device-info">
+                            <div><strong>System IP:</strong> ${systemIP}</div>
+                            <div><strong>Site ID:</strong> ${siteId}</div>
+                            <div><strong>Type:</strong> ${deviceType}</div>
+                            <div><strong>Version:</strong> ${version}</div>
+                        </div>
+                        <div class="device-actions">
+                            <button class="btn" onclick="event.stopPropagation(); quickSSHConnect('${systemIP}', '${hostname}')" ${!isReachable ? 'disabled' : ''}>
+                                🔐 SSH
+                            </button>
+                            <button class="btn" onclick="event.stopPropagation(); pingDevice('${systemIP}', '${hostname}')" ${!isReachable ? 'disabled' : ''}>
+                                📡 Ping
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            listDiv.innerHTML = devicesHTML;
+        }
+        
+        function selectSSHDevice(systemIP, hostname, deviceType, status) {
+            selectedDevice = {
+                'system-ip': systemIP,
+                'host-name': hostname,
+                'device-type': deviceType,
+                'status': status
+            };
+            
+            // Update selected device info
+            document.getElementById('selected-device-info').value = `${hostname} (${systemIP})`;
+            
+            // Enable SSH connect button if device is reachable
+            const connectBtn = document.getElementById('ssh-connect-btn');
+            connectBtn.disabled = status !== 'reachable';
+            
+            // Update UI to show selection
+            displaySSHDevices();
+        }
+        
+        function filterDevices() {
+            const searchTerm = document.getElementById('device-search').value.toLowerCase();
+            const statusFilter = document.getElementById('device-filter').value;
+            const typeFilter = document.getElementById('device-type-filter').value;
+            
+            filteredDevices = sshDevices.filter(device => {
+                const hostname = (device['host-name'] || '').toLowerCase();
+                const systemIP = (device['system-ip'] || '').toLowerCase();
+                const deviceType = (device['device-type'] || '').toLowerCase();
+                const status = device.reachability || device.status || 'unknown';
+                
+                // Search filter
+                const matchesSearch = !searchTerm || 
+                    hostname.includes(searchTerm) || 
+                    systemIP.includes(searchTerm) || 
+                    deviceType.includes(searchTerm);
+                
+                // Status filter
+                const matchesStatus = statusFilter === 'all' || 
+                    (statusFilter === 'reachable' && status === 'reachable') ||
+                    (statusFilter === 'unreachable' && status !== 'reachable');
+                
+                // Type filter
+                const matchesType = typeFilter === 'all' || 
+                    deviceType.includes(typeFilter);
+                
+                return matchesSearch && matchesStatus && matchesType;
+            });
+            
+            displaySSHDevices();
+            updateDeviceCount();
+        }
+        
+        function updateDeviceCount() {
+            const countDiv = document.getElementById('device-count-result');
+            const total = sshDevices.length;
+            const filtered = filteredDevices.length;
+            const reachable = filteredDevices.filter(d => (d.reachability || d.status) === 'reachable').length;
+            
+            countDiv.innerHTML = `📊 Showing ${filtered} of ${total} devices (${reachable} reachable)`;
+            countDiv.className = 'result success';
+        }
+        
+        function updateSSHVManageSelector() {
+            const sshVManageSelect = document.getElementById('ssh-vmanage-select');
+            const mainVManageSelect = document.getElementById('vmanage-select');
+            
+            // Copy options from main vManage selector
+            sshVManageSelect.innerHTML = mainVManageSelect.innerHTML;
+            
+            // Set the same selected value
+            sshVManageSelect.value = mainVManageSelect.value;
+        }
+        
+        async function connectSSHDevice() {
+            const device = selectedDevice;
+            const username = document.getElementById('ssh-username').value.trim();
+            const password = document.getElementById('ssh-password').value.trim();
+            
+            if (!device) {
+                alert('Please select a device first');
+                return;
+            }
+            
+            if (!username || !password) {
+                alert('Please enter SSH username and password');
+                return;
+            }
+            
+            const loadingDiv = document.getElementById('ssh-connect-loading');
+            const resultDiv = document.getElementById('ssh-connection-result');
+            const terminalDiv = document.getElementById('ssh-terminal-output');
+            
+            loadingDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/router/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: `ssh_${device['host-name']}`,
+                        host: device['system-ip'],
+                        port: 22,
+                        username: username,
+                        password: password,
+                        device_type: 'cisco_ios'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    sshConnection = `ssh_${device['host-name']}`;
+                    resultDiv.innerHTML = `<div class="result success">✅ Connected to ${device['host-name']} (${device['system-ip']})</div>`;
+                    
+                    // Enable command input
+                    document.getElementById('ssh-command').disabled = false;
+                    document.getElementById('ssh-send-btn').disabled = false;
+                    
+                    // Add connection message to terminal
+                    addTerminalLine(`Connected to ${device['host-name']} (${device['system-ip']}) via SSH`);
+                    addTerminalLine('Ready for commands...');
+                    
+                } else {
+                    resultDiv.innerHTML = `<div class="result error">❌ Failed to connect: ${data.error}</div>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">❌ Connection error: ${error.message}</div>`;
+            }
+            
+            loadingDiv.style.display = 'none';
+        }
+        
+        async function quickSSHConnect(systemIP, hostname) {
+            // Auto-fill device selection
+            selectSSHDevice(systemIP, hostname, 'vedge', 'reachable');
+            
+            // Show tab and scroll to SSH section
+            showTab('ssh-devices');
+            document.getElementById('selected-device-info').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function handleSSHCommand(event) {
+            if (event.key === 'Enter') {
+                sendSSHCommand();
+            }
+        }
+        
+        async function sendSSHCommand() {
+            const command = document.getElementById('ssh-command').value.trim();
+            
+            if (!command || !sshConnection) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/router/command', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        router_name: sshConnection,
+                        command: command
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Add command to terminal
+                addTerminalLine(`$ ${command}`, 'command');
+                
+                if (data.success) {
+                    addTerminalLine(data.output);
+                } else {
+                    addTerminalLine(`Error: ${data.error}`, 'error');
+                }
+                
+                // Clear command input
+                document.getElementById('ssh-command').value = '';
+                
+            } catch (error) {
+                addTerminalLine(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function addTerminalLine(text, type = 'output') {
+            const terminalDiv = document.getElementById('ssh-terminal-output');
+            const line = document.createElement('div');
+            line.className = `terminal-line ${type}`;
+            line.textContent = text;
+            terminalDiv.appendChild(line);
+            terminalDiv.scrollTop = terminalDiv.scrollHeight;
+        }
+        
+        function clearSSHTerminal() {
+            const terminalDiv = document.getElementById('ssh-terminal-output');
+            terminalDiv.innerHTML = '<div class="terminal-line">Terminal cleared...</div>';
+        }
+        
+        async function disconnectSSH() {
+            if (!sshConnection) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/router/${sshConnection}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addTerminalLine('SSH connection closed.');
+                    document.getElementById('ssh-connection-result').innerHTML = 
+                        '<div class="result">Disconnected from SSH session</div>';
+                }
+                
+            } catch (error) {
+                console.error('Error disconnecting:', error);
+            }
+            
+            // Reset connection state
+            sshConnection = null;
+            document.getElementById('ssh-command').disabled = true;
+            document.getElementById('ssh-send-btn').disabled = true;
+        }
+        
+        async function pingDevice(systemIP, hostname) {
+            alert(`Ping functionality for ${hostname} (${systemIP}) - Coming soon!`);
+            // TODO: Implement ping using vManage API tools
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshRouterList();
+            refreshVManageList();
+        });
+    </script>
+</body>
+</html>

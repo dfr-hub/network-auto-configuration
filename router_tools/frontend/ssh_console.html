@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>SSH Console</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+<style>
+ html,body { height:100%; }
+ body { margin:0; background:#111; color:#eee; font-family:system-ui,monospace; display:flex; flex-direction:column; }
+ #topbar { background:#1f1f1f; padding:6px 12px; font-size:14px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+ #topbar button { font-size:12px; }
+ #status { font-weight:600; }
+ #terminal-wrapper { flex:1; position:relative; }
+ #terminal { position:absolute; inset:0; }
+ button { background:#2563eb; border:none; color:#fff; padding:6px 12px; border-radius:4px; cursor:pointer; }
+ button:hover { background:#1d4ed8; }
+ .error { color:#f87171; }
+ .ok { color:#10b981; }
+ /* removed spacer */
+</style>
+</head>
+<body>
+  <div id="topbar">
+    <span id="title">SSH Console</span>
+    <span id="router"></span>
+    <span id="status" class="error">disconnected</span>
+    <button id="btnDetach">Detach</button>
+    <button id="btnReconnect" style="display:none;">Reconnect</button>
+  </div>
+  <div id="terminal-wrapper"><div id="terminal"></div></div>
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const router = params.get('router');
+    document.getElementById('router').textContent = router ? '('+router+')' : '(no router)';
+
+    let currentFont = 14;
+    const fitAddon = new window.FitAddon.FitAddon();
+    const term = new window.Terminal({
+      cursorBlink: true,
+      fontSize: currentFont,
+      theme: { background: '#111111' }
+    });
+    term.loadAddon(fitAddon);
+    term.open(document.getElementById('terminal'));
+    function fit(){ try { fitAddon.fit(); } catch(e){} }
+    window.addEventListener('resize',()=>fit());
+  setTimeout(fit,10);
+  setTimeout(fit,200); // secondary fit after fonts load
+
+    // Font resize controls
+    const minusBtn = document.createElement('button'); minusBtn.textContent='A-'; minusBtn.onclick=()=>{ currentFont=Math.max(8,currentFont-1); term.options.fontSize=currentFont; fit(); };
+    const plusBtn = document.createElement('button'); plusBtn.textContent='A+'; plusBtn.onclick=()=>{ currentFont=Math.min(40,currentFont+1); term.options.fontSize=currentFont; fit(); };
+    document.getElementById('topbar').appendChild(minusBtn);
+    document.getElementById('topbar').appendChild(plusBtn);
+
+    let ws;
+    let manualClose = false;
+
+    function connect() {
+      if(!router){ term.writeln('\x1b[31m[ERROR] router parameter missing ?router=NAME\x1b[0m'); return; }
+      const proto = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+      const url = proto + location.host + '/ws/ssh/' + encodeURIComponent(router);
+      ws = new WebSocket(url);
+      document.getElementById('status').textContent = 'connecting...';
+      document.getElementById('status').className = '';
+      ws.onopen = () => {
+        document.getElementById('status').textContent = 'connected';
+        document.getElementById('status').className = 'ok';
+        document.getElementById('btnReconnect').style.display='none';
+        term.focus();
+      };
+      ws.onmessage = ev => {
+        term.write(ev.data.replace(/\n/g,"\r\n"));
+      };
+      ws.onerror = () => {
+        document.getElementById('status').textContent = 'error';
+        document.getElementById('status').className = 'error';
+      };
+      ws.onclose = () => {
+        document.getElementById('status').textContent = manualClose ? 'detached' : 'closed';
+        document.getElementById('status').className = 'error';
+        document.getElementById('btnReconnect').style.display = manualClose ? 'none' : 'inline-block';
+      };
+    }
+
+    // Keyboard handling: send raw printable chars immediately, translate Enter to \r
+    term.onData(data => {
+      if(!ws || ws.readyState !== WebSocket.OPEN) return;
+      // If user presses Enter, xterm sends "\r" already; just forward.
+      ws.send(data);
+    });
+
+    document.getElementById('btnDetach').onclick = () => {
+      manualClose = true;
+      try { ws && ws.close(); } catch(e){}
+    };
+    document.getElementById('btnReconnect').onclick = () => {
+      manualClose = false;
+      connect();
+    };
+
+    connect();
+  </script>
+</body>
+</html>

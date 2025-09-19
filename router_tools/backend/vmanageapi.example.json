@@ -1,0 +1,9 @@
+{
+  "host": "your-vmanage-host.com",
+  "username": "your-username", 
+  "password": "your-password",
+  "tenant": "default",
+  "port": 443,
+  "verify_ssl": false,
+  "timeout": 30
+}

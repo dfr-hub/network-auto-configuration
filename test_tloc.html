@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test TLOC Chart</title>
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Responsive.js"></script>
+</head>
+<body>
+    <div id="chartdiv" style="width: 100%; height: 500px; border: 1px solid #ccc;"></div>
+
+    <script>
+        // Test data
+        const testData = [
+            { date: Date.now() - 3600000 * 24, loss: 0.5, jitter: 15 },
+            { date: Date.now() - 3600000 * 18, loss: 1.2, jitter: 22 },
+            { date: Date.now() - 3600000 * 12, loss: 0.8, jitter: 18 },
+            { date: Date.now() - 3600000 * 6, loss: 2.1, jitter: 35 },
+            { date: Date.now(), loss: 0.3, jitter: 12 }
+        ];
+
+        console.log('Test data:', testData);
+
+        am5.ready(function() {
+            console.log('amCharts ready');
+            
+            // Create root
+            const root = am5.Root.new("chartdiv");
+            
+            // Set themes
+            root.setThemes([
+                am5themes_Animated.new(root),
+                am5themes_Responsive.new(root)
+            ]);
+            
+            // Create chart
+            const chart = root.container.children.push(am5xy.XYChart.new(root, {
+                panX: true,
+                panY: true,
+                wheelX: "panX",
+                wheelY: "zoomX",
+                paddingLeft: 0,
+                paddingRight: 1
+            }));
+            
+            // Create axes
+            const xAxis = chart.xAxes.push(am5xy.DateAxis.new(root, {
+                maxDeviation: 0,
+                baseInterval: { timeUnit: "hour", count: 1 },
+                renderer: am5xy.AxisRendererX.new(root, {}),
+                tooltip: am5.Tooltip.new(root, {})
+            }));
+            
+            // Left Y-axis for Loss %
+            const lossYAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
+                maxDeviation: 0,
+                renderer: am5xy.AxisRendererY.new(root, { opposite: false })
+            }));
+            lossYAxis.get("renderer").set("stroke", am5.color("#dc3545"));
+            lossYAxis.set("numberFormat", "#'%'");
+            
+            // Right Y-axis for Jitter ms  
+            const jitterYAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
+                maxDeviation: 0,
+                renderer: am5xy.AxisRendererY.new(root, { opposite: true })
+            }));
+            jitterYAxis.get("renderer").set("stroke", am5.color("#fd7e14"));
+            jitterYAxis.set("numberFormat", "#'ms'");
+            
+            // Create loss series
+            const lossSeries = chart.series.push(am5xy.LineSeries.new(root, {
+                name: "Loss %",
+                xAxis: xAxis,
+                yAxis: lossYAxis,
+                valueXField: "date",
+                valueYField: "loss",
+                stroke: am5.color("#dc3545"),
+                tooltip: am5.Tooltip.new(root, {
+                    labelText: "{name}: {valueY}%"
+                })
+            }));
+            
+            lossSeries.strokes.template.setAll({ strokeWidth: 2 });
+            lossSeries.data.setAll(testData);
+            
+            // Create jitter series
+            const jitterSeries = chart.series.push(am5xy.LineSeries.new(root, {
+                name: "Jitter ms",
+                xAxis: xAxis,
+                yAxis: jitterYAxis,
+                valueXField: "date",
+                valueYField: "jitter", 
+                stroke: am5.color("#fd7e14"),
+                strokeDasharray: [2, 2],
+                tooltip: am5.Tooltip.new(root, {
+                    labelText: "{name}: {valueY}ms"
+                })
+            }));
+            
+            jitterSeries.strokes.template.setAll({ strokeWidth: 2 });
+            jitterSeries.data.setAll(testData);
+            
+            // Add legend
+            const legend = chart.children.push(am5.Legend.new(root, {
+                centerX: am5.p50,
+                x: am5.p50
+            }));
+            legend.data.setAll(chart.series.values);
+            
+            // Make series animate on load
+            chart.appear(1000, 100);
+            
+            console.log('Chart created successfully');
+        });
+    </script>
+</body>
+</html>

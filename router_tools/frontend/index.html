@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Router Network Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .tools-section {
+            padding: 40px;
+        }
+        
+        .tool-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
+        .tool-card h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+        }
+        
+        .tool-card h3::before {
+            content: "🔧";
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .input-field {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .input-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .input-field input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .input-field input:focus {
+            outline: none;
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .result {
+            background: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .result.success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .result.error {
+            border-left: 4px solid #dc3545;
+            background: #f8d7da;
+        }
+        
+        .result h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .result-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .hops-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .hop-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .hop-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .hop-info {
+            flex: 1;
+        }
+        
+        .hop-host {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .hop-times {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .raw-output {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .toggle-raw {
+            background: transparent;
+            color: #667eea;
+            border: 1px solid #667eea;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .toggle-raw:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        @media (max-width: 768px) {
+            .input-group {
+                flex-direction: column;
+            }
+            
+            .result-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .hop-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 Router Network Tools</h1>
+            <p>Ping, Traceroute, and Network Diagnostics</p>
+        </div>
+        
+        <div class="tools-section">
+            <!-- Ping Tool -->
+            <div class="tool-card">
+                <h3>Ping Tool</h3>
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="ping-host">Host/IP Address:</label>
+                        <input type="text" id="ping-host" placeholder="google.com or 8.8.8.8" value="google.com">
+                    </div>
+                    <div class="input-field">
+                        <label for="ping-count">Packet Count:</label>
+                        <input type="number" id="ping-count" min="1" max="100" value="4">
+                    </div>
+                </div>
+                <button class="btn" onclick="runPing()">🏓 Run Ping</button>
+                <div class="loading" id="ping-loading">Running ping test...</div>
+                <div class="result" id="ping-result"></div>
+            </div>
+            
+            <!-- Traceroute Tool -->
+            <div class="tool-card">
+                <h3>Traceroute Tool</h3>
+                <div class="input-group">
+                    <div class="input-field">
+                        <label for="trace-host">Host/IP Address:</label>
+                        <input type="text" id="trace-host" placeholder="google.com or 8.8.8.8" value="google.com">
+                    </div>
+                    <div class="input-field">
+                        <label for="trace-hops">Max Hops:</label>
+                        <input type="number" id="trace-hops" min="1" max="64" value="30">
+                    </div>
+                </div>
+                <button class="btn" onclick="runTraceroute()">🛣️ Run Traceroute</button>
+                <div class="loading" id="trace-loading">Running traceroute...</div>
+                <div class="result" id="trace-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function runPing() {
+            const host = document.getElementById('ping-host').value.trim();
+            const count = parseInt(document.getElementById('ping-count').value);
+            const resultDiv = document.getElementById('ping-result');
+            const loadingDiv = document.getElementById('ping-loading');
+            
+            if (!host) {
+                alert('Please enter a host or IP address');
+                return;
+            }
+            
+            // Show loading, hide result
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            document.querySelector('.tool-card .btn').disabled = true;
+            
+            try {
+                const response = await fetch('/api/ping', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        host: host,
+                        count: count
+                    })
+                });
+                
+                const data = await response.json();
+                displayPingResult(data);
+                
+            } catch (error) {
+                displayPingResult({
+                    success: false,
+                    error: 'Network error: ' + error.message
+                });
+            }
+            
+            // Hide loading, show result
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+            document.querySelector('.tool-card .btn').disabled = false;
+        }
+        
+        function displayPingResult(data) {
+            const resultDiv = document.getElementById('ping-result');
+            
+            if (data.success) {
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+                    <h4>✅ Ping Results for ${data.host}</h4>
+                    <div class="result-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${data.packets_sent}</div>
+                            <div class="stat-label">Packets Sent</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${data.packets_received}</div>
+                            <div class="stat-label">Packets Received</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${data.packet_loss_percent.toFixed(1)}%</div>
+                            <div class="stat-label">Packet Loss</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${data.avg_time_ms || 'N/A'}ms</div>
+                            <div class="stat-label">Average Time</div>
+                        </div>
+                    </div>
+                    ${data.min_time_ms ? `
+                    <div class="result-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${data.min_time_ms}ms</div>
+                            <div class="stat-label">Min Time</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">${data.max_time_ms}ms</div>
+                            <div class="stat-label">Max Time</div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    <button class="toggle-raw" onclick="toggleRawOutput('ping-raw')">Show Raw Output</button>
+                    <div class="raw-output" id="ping-raw" style="display: none;">${data.raw_output}</div>
+                `;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Ping Failed</h4>
+                    <p><strong>Error:</strong> ${data.error}</p>
+                    ${data.raw_output ? `
+                    <button class="toggle-raw" onclick="toggleRawOutput('ping-raw-error')">Show Raw Output</button>
+                    <div class="raw-output" id="ping-raw-error" style="display: none;">${data.raw_output}</div>
+                    ` : ''}
+                `;
+            }
+        }
+        
+        async function runTraceroute() {
+            const host = document.getElementById('trace-host').value.trim();
+            const maxHops = parseInt(document.getElementById('trace-hops').value);
+            const resultDiv = document.getElementById('trace-result');
+            const loadingDiv = document.getElementById('trace-loading');
+            
+            if (!host) {
+                alert('Please enter a host or IP address');
+                return;
+            }
+            
+            // Show loading, hide result
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            document.querySelectorAll('.tool-card .btn')[1].disabled = true;
+            
+            try {
+                const response = await fetch('/api/traceroute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        host: host,
+                        max_hops: maxHops
+                    })
+                });
+                
+                const data = await response.json();
+                displayTracerouteResult(data);
+                
+            } catch (error) {
+                displayTracerouteResult({
+                    success: false,
+                    error: 'Network error: ' + error.message
+                });
+            }
+            
+            // Hide loading, show result
+            loadingDiv.style.display = 'none';
+            resultDiv.style.display = 'block';
+            document.querySelectorAll('.tool-card .btn')[1].disabled = false;
+        }
+        
+        function displayTracerouteResult(data) {
+            const resultDiv = document.getElementById('trace-result');
+            
+            if (data.success) {
+                resultDiv.className = 'result success';
+                let hopsHTML = '';
+                
+                data.hops.forEach(hop => {
+                    hopsHTML += `
+                        <div class="hop-item">
+                            <div class="hop-number">${hop.hop}</div>
+                            <div class="hop-info">
+                                <div class="hop-host">${hop.hostname}</div>
+                                <div class="hop-times">${hop.times.join(' • ')}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                resultDiv.innerHTML = `
+                    <h4>🛣️ Traceroute Results for ${data.host}</h4>
+                    <div class="result-stats">
+                        <div class="stat-item">
+                            <div class="stat-value">${data.total_hops}</div>
+                            <div class="stat-label">Total Hops</div>
+                        </div>
+                    </div>
+                    <div class="hops-container">
+                        ${hopsHTML}
+                    </div>
+                    <button class="toggle-raw" onclick="toggleRawOutput('trace-raw')">Show Raw Output</button>
+                    <div class="raw-output" id="trace-raw" style="display: none;">${data.raw_output}</div>
+                `;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <h4>❌ Traceroute Failed</h4>
+                    <p><strong>Error:</strong> ${data.error}</p>
+                    ${data.raw_output ? `
+                    <button class="toggle-raw" onclick="toggleRawOutput('trace-raw-error')">Show Raw Output</button>
+                    <div class="raw-output" id="trace-raw-error" style="display: none;">${data.raw_output}</div>
+                    ` : ''}
+                `;
+            }
+        }
+        
+        function toggleRawOutput(id) {
+            const element = document.getElementById(id);
+            if (element.style.display === 'none') {
+                element.style.display = 'block';
+                event.target.textContent = 'Hide Raw Output';
+            } else {
+                element.style.display = 'none';
+                event.target.textContent = 'Show Raw Output';
+            }
+        }
+        
+        // Allow Enter key to trigger ping/traceroute
+        document.getElementById('ping-host').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') runPing();
+        });
+        
+        document.getElementById('trace-host').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') runTraceroute();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Statistics Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .form-group { margin: 10px 0; }
+        input, select, button { padding: 8px; margin: 5px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #output { background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 5px; min-height: 200px; white-space: pre-wrap; font-family: monospace; font-size: 12px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Edge Statistics Test Page</h1>
+        <p>Simple isolated test untuk troubleshoot Edge Statistics API calls.</p>
+        
+        <div class="form-group">
+            <label>Test Mode:</label>
+            <select id="testMode">
+                <option value="api">Direct API Test</option>
+                <option value="full">Full Edge Stats Flow</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Session Name:</label>
+            <input type="text" id="sessionName" placeholder="e.g., prod-dc1" />
+        </div>
+        
+        <div class="form-group">
+            <label>Device IP:</label>
+            <input type="text" id="deviceIp" placeholder="e.g., 172.16.1.10" />
+        </div>
+        
+        <div class="form-group">
+            <button onclick="runTest()">Run Test</button>
+            <button onclick="clearOutput()">Clear</button>
+        </div>
+        
+        <div id="status"></div>
+        <div id="output">Ready for testing...</div>
+    </div>
+
+    <script>
+        function log(message) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent += `[${timestamp}] ${message}\n`;
+            console.log(`[TEST] ${message}`);
+        }
+
+        function setStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.textContent = message;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = 'Ready for testing...\n';
+            document.getElementById('status').textContent = '';
+        }
+
+        async function testApi(endpoint, options = {}) {
+            try {
+                log(`Calling: ${endpoint}`);
+                const response = await fetch(endpoint, options);
+                log(`Response status: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                log(`Response data: ${JSON.stringify(data, null, 2)}`);
+                return data;
+            } catch (error) {
+                log(`ERROR: ${error.message}`);
+                throw error;
+            }
+        }
+
+        async function runDirectApiTest() {
+            log('=== Direct API Test Mode ===');
+            
+            // Test 1: Health check
+            try {
+                await testApi('/api/health');
+                setStatus('Backend server is responding', 'success');
+            } catch (error) {
+                setStatus('Backend server not responding!', 'error');
+                return;
+            }
+            
+            // Test 2: vManage list
+            try {
+                const vmList = await testApi('/api/vmanage/list');
+                if (vmList.vmanage_connections && vmList.vmanage_connections.length > 0) {
+                    log(`Found ${vmList.vmanage_connections.length} vManage sessions`);
+                    setStatus(`Found vManage sessions: ${vmList.vmanage_connections.join(', ')}`, 'success');
+                } else {
+                    setStatus('No vManage sessions connected', 'error');
+                    log('NOTE: You need to connect to vManage first via the main dashboard');
+                    return;
+                }
+            } catch (error) {
+                setStatus('Failed to get vManage list', 'error');
+                return;
+            }
+            
+            // Test 3: Specific session test if provided
+            const sessionName = document.getElementById('sessionName').value.trim();
+            if (sessionName) {
+                try {
+                    await testApi(`/api/vmanage/${encodeURIComponent(sessionName)}/tenants`);
+                    await testApi(`/api/vmanage/${encodeURIComponent(sessionName)}/edge-devices`);
+                    setStatus(`Session ${sessionName} is working`, 'success');
+                } catch (error) {
+                    setStatus(`Session ${sessionName} failed`, 'error');
+                }
+            }
+        }
+
+        async function runFullEdgeStatsTest() {
+            log('=== Full Edge Stats Flow Test ===');
+            
+            const sessionName = document.getElementById('sessionName').value.trim();
+            const deviceIp = document.getElementById('deviceIp').value.trim();
+            
+            if (!sessionName || !deviceIp) {
+                setStatus('Please provide Session Name and Device IP for full test', 'error');
+                return;
+            }
+            
+            try {
+                // Step 1: Get sessions
+                log('Step 1: Getting vManage sessions...');
+                const sessions = await testApi('/api/vmanage/list');
+                
+                // Step 2: Get tenants
+                log('Step 2: Getting tenants...');
+                const tenants = await testApi(`/api/vmanage/${encodeURIComponent(sessionName)}/tenants`);
+                
+                // Step 3: Get devices
+                log('Step 3: Getting edge devices...');
+                const devices = await testApi(`/api/vmanage/${encodeURIComponent(sessionName)}/edge-devices`);
+                
+                // Step 4: Get interfaces
+                log('Step 4: Getting device interfaces...');
+                const interfaces = await testApi(`/api/vmanage/${encodeURIComponent(sessionName)}/device/${encodeURIComponent(deviceIp)}/interfaces`);
+                
+                // Step 5: Get interface stats
+                log('Step 5: Getting interface statistics...');
+                const statsPayload = {
+                    device_ip: deviceIp,
+                    time_range: "last 1 hour",
+                    interval: "5min"
+                };
+                const stats = await testApi(
+                    `/api/vmanage/${encodeURIComponent(sessionName)}/stats/interface`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(statsPayload)
+                    }
+                );
+                
+                setStatus('Full Edge Stats flow completed successfully!', 'success');
+                log('=== Test completed successfully ===');
+                
+            } catch (error) {
+                setStatus('Full Edge Stats flow failed', 'error');
+                log('=== Test failed ===');
+            }
+        }
+
+        async function runTest() {
+            clearOutput();
+            const mode = document.getElementById('testMode').value;
+            
+            try {
+                if (mode === 'api') {
+                    await runDirectApiTest();
+                } else {
+                    await runFullEdgeStatsTest();
+                }
+            } catch (error) {
+                log(`Test failed with error: ${error.message}`);
+                setStatus('Test failed - check output for details', 'error');
+            }
+        }
+
+        // Auto-run basic test on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Edge Statistics Test Page loaded');
+            log('Open browser DevTools Network tab to monitor requests');
+            log('Click "Run Test" to start...');
+        });
+    </script>
+</body>
+</html>

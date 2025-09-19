@@ -1,0 +1,2491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Management Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Highcharts -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    
+    <!-- amCharts -->
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Responsive.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #2c3e50;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 256px;
+            height: 100vh;
+            background: #343a40;
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid #495057;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .sidebar-header .logo {
+            width: 32px;
+            height: 32px;
+            background: #007bff;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: #adb5bd;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: #495057;
+            color: white;
+            border-left-color: #007bff;
+        }
+
+        .nav-item.active {
+            background: #495057;
+            color: white;
+            border-left-color: #007bff;
+        }
+
+        .nav-item i {
+            width: 20px;
+            margin-right: 0.75rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 256px;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .main-header {
+            background: white;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: #e9ecef;
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            padding: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            color: #2c3e50;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .stat-card.blue { border-left-color: #007bff; }
+        .stat-card.green { border-left-color: #28a745; }
+        .stat-card.yellow { border-left-color: #ffc107; }
+        .stat-card.red { border-left-color: #dc3545; }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-card.blue .stat-icon { background: #007bff; }
+        .stat-card.green .stat-icon { background: #28a745; }
+        .stat-card.yellow .stat-icon { background: #ffc107; }
+        .stat-card.red .stat-icon { background: #dc3545; }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+
+        .stat-change.positive { color: #28a745; }
+        .stat-change.negative { color: #dc3545; }
+
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        /* Highcharts and amCharts specific styling */
+        #es-iface-chart, #es-tloc-chart {
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            background: #ffffff;
+            min-height: 400px;
+            position: relative;
+        }
+
+        /* Horizontal chart styling for TLOC Statistics */
+        #es-tloc-chart {
+            height: 500px !important;
+            min-height: 500px !important;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+        }
+
+        /* Ensure amCharts container is visible */
+        #es-tloc-chart div[id^="id-"] {
+            height: 100% !important;
+            min-height: 480px !important;
+            width: 100% !important;
+        }
+        
+        /* Force amCharts visibility */
+        #es-tloc-chart .amcharts-Container {
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        /* Chart loading indicator */
+        .chart-loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #6c757d;
+            font-size: 14px;
+            z-index: 10;
+        }
+
+        /* Highcharts customizations */
+        .highcharts-container {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+        }
+
+        /* amCharts loading and styling */
+        .am5-loading {
+            background: #f8f9fa !important;
+        }
+
+        .highcharts-title {
+            font-weight: 600 !important;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .chart-subtitle {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        .time-selector {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 0.25rem;
+        }
+
+        .time-btn {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid transparent;
+            background: transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            color: #6c757d;
+            min-width: 40px;
+        }
+
+        .time-btn:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .time-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+            box-shadow: 0 1px 3px rgba(0,123,255,0.3);
+        }
+
+        /* Device List */
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .device-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .device-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .device-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .device-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+
+        .device-status {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .device-status.online {
+            background: #d4edda;
+            color: #28a745;
+        }
+
+        .device-status.offline {
+            background: #f8d7da;
+            color: #dc3545;
+        }
+
+        .device-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .device-info-item {
+            font-size: 0.9rem;
+        }
+
+        .device-info-label {
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .device-info-value {
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .device-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #dee2e6;
+            color: #6c757d;
+        }
+
+        .btn-outline:hover {
+            background: #f8f9fa;
+            border-color: #007bff;
+            color: #007bff;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .devices-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .main-header {
+                padding: 1rem;
+            }
+
+            .dashboard-content {
+                padding: 1rem;
+            }
+        }
+
+        /* Loading States */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Search */
+        .search-container {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <i class="fas fa-network-wired"></i>
+            </div>
+            <h2>Network Hub</h2>
+        </div>
+        
+                <div class="nav-section-title">Main</div>
+                <a href="#" class="nav-item active" onclick="showSection('dashboard')">
+                    <i class="fas fa-tachometer-alt"></i>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('devices')">
+                    <i class="fas fa-server"></i>
+                    Devices
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('monitoring')">
+                    <i class="fas fa-chart-line"></i>
+                    Monitoring
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Management</div>
+                <a href="#" class="nav-item" onclick="showSection('ssh-console')">
+                    <i class="fas fa-terminal"></i>
+                    SSH Console
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('edge-stats')">
+                    <i class="fas fa-chart-line"></i>
+                    Edge Statistics
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('vmanage')">
+                    <i class="fas fa-cloud"></i>
+                    vManage
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('configuration')">
+                    <i class="fas fa-cog"></i>
+                    Configuration
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <div class="nav-section-title">Tools</div>
+                <a href="#" class="nav-item" onclick="showSection('logs')">
+                    <i class="fas fa-file-alt"></i>
+                    Logs & Info
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('backup')">
+                    <i class="fas fa-download"></i>
+                    Backup
+                </a>
+                <a href="#" class="nav-item" onclick="showSection('settings')">
+                    <i class="fas fa-wrench"></i>
+                    Settings
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="breadcrumb">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </div>
+            <div class="header-actions">
+                <button class="btn-icon" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="btn-icon">
+                    <i class="fas fa-bell"></i>
+                </button>
+                <button class="btn-icon">
+                    <i class="fas fa-user"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="content-section">
+                <h1 class="page-title">Dashboard</h1>
+                
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card blue">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="total-devices">26</div>
+                                <div class="stat-label">Total Devices</div>
+                                <div class="stat-change negative">
+                                    <i class="fas fa-arrow-down"></i>
+                                    12.4%
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="fas fa-server"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card green">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="online-devices">$6,200</div>
+                                <div class="stat-label">Network Health</div>
+                                <div class="stat-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    40.9%
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card yellow">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="uptime">2.49%</div>
+                                <div class="stat-label">Average Uptime</div>
+                                <div class="stat-change positive">
+                                    <i class="fas fa-arrow-up"></i>
+                                    84.7%
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card red">
+                        <div class="stat-header">
+                            <div>
+                                <div class="stat-value" id="alerts">44</div>
+                                <div class="stat-label">Active Alerts</div>
+                                <div class="stat-change negative">
+                                    <i class="fas fa-arrow-down"></i>
+                                    23.6%
+                                </div>
+                            </div>
+                            <div class="stat-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Traffic Chart -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <div>
+                            <div class="chart-title">Network Traffic</div>
+                            <div class="chart-subtitle">January - July 2023</div>
+                        </div>
+                        <div class="time-selector">
+                            <button class="time-btn">Day</button>
+                            <button class="time-btn active">Month</button>
+                            <button class="time-btn">Year</button>
+                        </div>
+                    </div>
+                    <canvas id="trafficChart" height="100"></canvas>
+                </div>
+            </div>
+
+            <!-- Devices Section -->
+            <div id="devices-section" class="content-section" style="display: none;">
+                <h1 class="page-title">Device Management</h1>
+                <!-- Router Connect Form -->
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:1rem;">Connect Router</h3>
+                    <form id="router-connect-form" onsubmit="event.preventDefault(); connectRouter();">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.75rem;margin-bottom:0.75rem;">
+                            <input required placeholder="Name" id="rc-name" class="search-input" style="padding:0.5rem;">
+                            <input required placeholder="Host/IP" id="rc-host" class="search-input" style="padding:0.5rem;">
+                            <input required type="number" placeholder="Port" id="rc-port" value="22" class="search-input" style="padding:0.5rem;">
+                            <input required placeholder="Username" id="rc-user" class="search-input" style="padding:0.5rem;">
+                            <input required placeholder="Password" id="rc-pass" type="password" class="search-input" style="padding:0.5rem;">
+                            <input placeholder="Device Type (optional)" id="rc-type" class="search-input" style="padding:0.5rem;">
+                        </div>
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                            <button class="btn btn-primary" type="submit"><i class="fas fa-plug"></i> Connect</button>
+                            <button class="btn btn-outline" type="button" onclick="loadDevices()"><i class="fas fa-rotate"></i> Refresh</button>
+                        </div>
+                        <div id="router-connect-status" style="margin-top:0.5rem;font-size:0.8rem;color:#6c757d;"></div>
+                    </form>
+                </div>
+                
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="Search devices..." id="device-search">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                
+                <div class="devices-grid" id="devices-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading devices...
+                    </div>
+                </div>
+            </div>
+
+            <!-- SSH Console Section -->
+            <div id="ssh-console-section" class="content-section" style="display: none;">
+                <h1 class="page-title">SSH Console</h1>
+                
+                <div class="search-container">
+                    <input type="text" class="search-input" placeholder="Search edge devices..." id="ssh-device-search">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                
+                <div class="devices-grid" id="ssh-devices-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading edge devices...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edge Statistics Section (light theme) -->
+            <div id="edge-stats-section" class="content-section" style="display: none;">
+                <h1 class="page-title">Edge Statistics</h1>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Filters</h3>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.6rem;margin-bottom:0.6rem;">
+                        <select id="es-session" class="search-input" title="vManage Session"></select>
+                        <select id="es-tenant" class="search-input" title="Tenant (optional)"></select>
+                        <select id="es-device" class="search-input" title="Device (system-ip)"></select>
+                        <input id="es-iface" class="search-input" placeholder="Interface (optional)" />
+                        <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap;">
+                            <div style="display:flex;gap:0.3rem;align-items:center;background:#f8f9fa;border-radius:6px;padding:0.4rem;">
+                                <button class="time-btn" data-hours="1" onclick="selectTimeRange(this)">1h</button>
+                                <button class="time-btn" data-hours="3" onclick="selectTimeRange(this)">3h</button>
+                                <button class="time-btn" data-hours="6" onclick="selectTimeRange(this)">6h</button>
+                                <button class="time-btn" data-hours="12" onclick="selectTimeRange(this)">12h</button>
+                                <button class="time-btn active" data-hours="24" onclick="selectTimeRange(this)">24h</button>
+                                <button class="time-btn" data-hours="168" onclick="selectTimeRange(this)">7days</button>
+                            </div>
+                            <div style="display:flex;gap:0.3rem;align-items:center;background:#f8f9fa;border-radius:6px;padding:0.4rem;">
+                                <span style="font-size:0.7rem;color:#6c757d;margin-right:0.3rem;">Interval:</span>
+                                <button class="time-btn active" data-interval="5min" onclick="selectInterval(this)">5min</button>
+                                <button class="time-btn" data-interval="1hour" onclick="selectInterval(this)">1hr</button>
+                                <button class="time-btn" data-interval="1day" onclick="selectInterval(this)">1day</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.3rem;align-items:center;">
+                        <button class="btn btn-primary" id="es-load">Load Statistics</button>
+                        <button class="btn btn-outline" id="es-refresh">Refresh Devices</button>
+                        <button class="btn btn-outline" id="es-iface-all">Select All</button>
+                        <button class="btn btn-outline" id="es-iface-none">Clear</button>
+                        <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.75rem;margin-left:0.5rem;">
+                            <input type="checkbox" id="es-show-tx" checked>
+                            <span>Show TX</span>
+                        </label>
+                        <span id="es-note" style="font-size:0.7rem;color:#6c757d;"></span>
+                    </div>
+                    <div id="es-iface-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.3rem;margin-top:0.4rem;"></div>
+                </div>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.5rem;">Interface Statistics (Highcharts)</h3>
+                    <div id="es-iface-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+                <div class="chart-container">
+                    <h3 style="margin-bottom:0.5rem;">TLOC Statistics (Highcharts)</h3>
+                    <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.5rem;">
+                        <input id="es-tloc-color" class="search-input" placeholder="color (e.g., mpls, biz-internet)" style="max-width:260px;">
+                        <button class="btn btn-outline" id="es-load-tloc">Load TLOC</button>
+                    </div>
+                    <div id="es-tloc-chart" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+
+            <!-- Configuration Section (expanded) -->
+            <div id="configuration-section" class="content-section" style="display: none;">
+                <h1 class="page-title">Device Configuration</h1>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Execute Command</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        <select id="cmd-router-select" class="search-input" style="flex:1;max-width:220px;padding:0.5rem;"></select>
+                        <input id="cmd-input" placeholder="show version" class="search-input" style="flex:2;padding:0.5rem;">
+                        <button class="btn btn-primary" onclick="executeCommand()"><i class="fas fa-terminal"></i> Run</button>
+                    </div>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        <button class="btn btn-outline" onclick="presetCommand('show ip interface brief')">IP Int Brief</button>
+                        <button class="btn btn-outline" onclick="presetCommand('show version')">Version</button>
+                        <button class="btn btn-outline" onclick="presetCommand('show clock')">Clock</button>
+                        <button class="btn btn-outline" onclick="presetCommand('show inventory')">Inventory</button>
+                    </div>
+                    <pre id="cmd-output" style="background:#111;color:#0f0;padding:0.75rem;border-radius:6px;max-height:260px;overflow:auto;font-size:0.75rem;">Output...</pre>
+                </div>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Push Configuration</h3>
+                    <select id="cfg-router-select" class="search-input" style="width:100%;margin-bottom:0.5rem;padding:0.5rem;"></select>
+                    <textarea id="cfg-commands" placeholder="interface gi0/0\n description UPLINK" style="width:100%;min-height:140px;padding:0.75rem;border:1px solid #dee2e6;border-radius:8px;font-family:monospace;font-size:0.8rem;margin-bottom:0.5rem;"></textarea>
+                    <div style="display:flex;gap:0.5rem;">
+                        <button class="btn btn-primary" onclick="pushConfig()"><i class="fas fa-paper-plane"></i> Send</button>
+                        <button class="btn btn-outline" onclick="document.getElementById('cfg-commands').value=''">Clear</button>
+                    </div>
+                    <pre id="cfg-output" style="background:#222;color:#0ff;padding:0.75rem;border-radius:6px;max-height:200px;overflow:auto;font-size:0.7rem;margin-top:0.5rem;">Config output...</pre>
+                </div>
+            </div>
+
+            <!-- Logs Section (expanded) -->
+            <div id="logs-section" class="content-section" style="display: none;">
+                <h1 class="page-title">Logs & Information</h1>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Router Logs</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        <select id="log-router-select" class="search-input" style="padding:0.5rem;max-width:220px;"></select>
+                        <select id="log-type" class="search-input" style="padding:0.5rem;max-width:160px;">
+                            <option value="all">All</option>
+                            <option value="system">System</option>
+                            <option value="interface">Interface</option>
+                            <option value="routing">Routing</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="loadLogs()"><i class="fas fa-file-alt"></i> Load</button>
+                    </div>
+                    <pre id="logs-output" style="background:#111;color:#fff;padding:0.75rem;border-radius:6px;max-height:260px;overflow:auto;font-size:0.7rem;">Logs...</pre>
+                </div>
+                <div class="chart-container">
+                    <h3 style="margin-bottom:0.75rem;">Router Info</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        <select id="info-router-select" class="search-input" style="padding:0.5rem;max-width:220px;"></select>
+                        <button class="btn btn-outline" onclick="loadRouterInfo()"><i class="fas fa-circle-info"></i> Get Info</button>
+                    </div>
+                    <pre id="info-output" style="background:#222;color:#fff;padding:0.75rem;border-radius:6px;max-height:260px;overflow:auto;font-size:0.7rem;">Info...</pre>
+                </div>
+            </div>
+
+            <!-- Backup Section (expanded) -->
+            <div id="backup-section" class="content-section" style="display: none;">
+                <h1 class="page-title">Backup & Restore</h1>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Backup Running Config</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        <select id="backup-router-select" class="search-input" style="padding:0.5rem;max-width:220px;"></select>
+                        <button class="btn btn-primary" onclick="backupConfig()"><i class="fas fa-download"></i> Backup</button>
+                        <button class="btn btn-outline" onclick="loadBackupFiles()"><i class="fas fa-rotate"></i> Refresh Files</button>
+                    </div>
+                    <div id="backup-result" style="font-size:0.75rem;color:#6c757d;">Status...</div>
+                </div>
+                <div class="chart-container">
+                    <h3 style="margin-bottom:0.75rem;">Backup Files</h3>
+                    <div id="backup-files" style="font-size:0.7rem;color:#6c757d;">No files...</div>
+                </div>
+            </div>
+
+            <!-- Tools Section (Network Tools) -->
+            <div id="monitoring-section" class="content-section" style="display: none;">
+                <h1 class="page-title">Network Tools</h1>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Ping</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        <input id="ping-host" placeholder="8.8.8.8" class="search-input" style="padding:0.5rem;max-width:220px;">
+                        <input id="ping-count" type="number" value="4" class="search-input" style="padding:0.5rem;max-width:120px;">
+                        <button class="btn btn-primary" onclick="doPing()"><i class="fas fa-bullseye"></i> Ping</button>
+                    </div>
+                    <pre id="ping-output" style="background:#111;color:#0f0;padding:0.75rem;border-radius:6px;max-height:200px;overflow:auto;font-size:0.7rem;">Ping output...</pre>
+                </div>
+                <div class="chart-container">
+                    <h3 style="margin-bottom:0.75rem;">Traceroute</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                        <input id="tr-host" placeholder="8.8.8.8" class="search-input" style="padding:0.5rem;max-width:220px;">
+                        <input id="tr-maxhops" type="number" value="30" class="search-input" style="padding:0.5rem;max-width:120px;">
+                        <button class="btn btn-outline" onclick="doTraceroute()"><i class="fas fa-route"></i> Traceroute</button>
+                    </div>
+                    <pre id="tr-output" style="background:#111;color:#0ff;padding:0.75rem;border-radius:6px;max-height:200px;overflow:auto;font-size:0.7rem;">Traceroute output...</pre>
+                </div>
+            </div>
+
+            <!-- vManage Section expanded -->
+            <div id="vmanage-section" class="content-section" style="display: none;">
+                <h1 class="page-title">vManage Integration</h1>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Add New vManage Session</h3>
+                    <form id="vmanage-connect-form" onsubmit="event.preventDefault(); connectVManage();" style="margin-bottom:0.75rem;">
+                        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.6rem;margin-bottom:0.6rem;">
+                            <input required placeholder="Session Name (e.g., prod-dc1)" id="vm-name" class="search-input" style="padding:0.45rem;">
+                            <input required placeholder="Host/IP or FQDN" id="vm-host" class="search-input" style="padding:0.45rem;">
+                            <input required type="number" placeholder="Port" id="vm-port" value="443" class="search-input" style="padding:0.45rem;">
+                            <input required placeholder="Username" id="vm-user" class="search-input" style="padding:0.45rem;">
+                            <input required placeholder="Password" id="vm-pass" type="password" class="search-input" style="padding:0.45rem;">
+                        </div>
+                        
+                        <!-- Quick Connect Presets -->
+                        <div style="margin-bottom:0.75rem;padding:0.6rem;background:#f8f9fa;border-radius:6px;">
+                            <h5 style="margin:0 0 0.4rem 0;font-size:0.75rem;color:#495057;"><i class="fas fa-rocket"></i> Quick Connect Presets</h5>
+                            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                                <button type="button" class="btn btn-outline" onclick="fillVManagePreset('production', '36.67.62.248', 443, 'admin')" style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                    <i class="fas fa-server"></i> Production
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="fillVManagePreset('staging', '192.168.1.100', 443, 'admin')" style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                    <i class="fas fa-flask"></i> Staging  
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="fillVManagePreset('lab-env', '10.0.0.1', 8443, 'labuser')" style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                    <i class="fas fa-vial"></i> Lab
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="fillVManagePreset('demo', '172.16.1.10', 443, 'demo')" style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                    <i class="fas fa-play-circle"></i> Demo
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="clearVManageForm()" style="font-size:0.7rem;padding:0.25rem 0.5rem;">
+                                    <i class="fas fa-eraser"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                            <button class="btn btn-primary" type="submit"><i class="fas fa-circle-plus"></i> Add Session</button>
+                            <button class="btn btn-outline" type="button" onclick="refreshVManageAll()"><i class="fas fa-rotate"></i> Refresh All</button>
+                            <button class="btn btn-outline" type="button" onclick="disconnectAllVManage()"><i class="fas fa-power-off"></i> Disconnect All</button>
+                        </div>
+                        <div id="vmanage-connect-status" style="margin-top:0.5rem;font-size:0.75rem;color:#6c757d;"></div>
+                    </form>
+                    <div style="display:flex;gap:0.75rem;align-items:flex-start;flex-wrap:wrap;">
+                        <div style="min-width:320px;flex:1;">
+                            <label style="font-size:0.7rem;font-weight:600;color:#6c757d;"><i class="fas fa-network-wired"></i> Connected vManage Sessions</label>
+                            <div id="vmanage-instance-list" style="max-height:200px;overflow:auto;border:1px solid #e1e5ea;border-radius:6px;background:#fff;">
+                                <div style="padding:1rem;text-align:center;color:#6c757d;font-size:0.75rem;">No sessions connected</div>
+                            </div>
+                        </div>
+                        <div style="flex:1;min-width:240px;">
+                            <label style="font-size:0.7rem;font-weight:600;color:#6c757d;">Tenants</label>
+                            <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.4rem;">
+                                <select id="tenant-select" class="search-input" style="padding:0.4rem;min-width:180px;" onchange="onTenantSelectChange()"></select>
+                                <button class="btn btn-outline" type="button" onclick="loadTenantsForActive()"><i class="fas fa-rotate"></i></button>
+                            </div>
+                            <div id="tenant-note" style="font-size:0.65rem;color:#6c757d;margin-bottom:0.5rem;">No tenants loaded.</div>
+                            <div id="tenant-description" style="font-size:0.65rem;color:#adb5bd;"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">cEdge / vEdge Devices</h3>
+                    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-bottom:0.5rem;">
+                        <span style="font-size:0.65rem;color:#6c757d;">Active vManage: <strong id="active-vmanage-label">-</strong></span>
+                        <span style="font-size:0.65rem;color:#6c757d;">Active Tenant: <strong id="active-tenant-label">-</strong></span>
+                        <button class="btn btn-outline" type="button" onclick="loadDevicesForTenant()"><i class="fas fa-list"></i> Reload Devices</button>
+                    </div>
+                    <div id="vmanage-device-table" style="overflow:auto;max-height:360px;border:1px solid #e1e5ea;border-radius:6px;">
+                        <table style="width:100%;border-collapse:collapse;font-size:0.68rem;">
+                            <thead style="background:#f1f3f5;position:sticky;top:0;">
+                                <tr>
+                                    <th style="text-align:left;padding:6px;border-bottom:1px solid #dee2e6;">Hostname</th>
+                                    <th style="text-align:left;padding:6px;border-bottom:1px solid #dee2e6;">System IP</th>
+                                    <th style="text-align:left;padding:6px;border-bottom:1px solid #dee2e6;">Type</th>
+                                    <th style="text-align:left;padding:6px;border-bottom:1px solid #dee2e6;">Site ID</th>
+                                    <th style="text-align:left;padding:6px;border-bottom:1px solid #dee2e6;">Reachability</th>
+                                    <th style="text-align:left;padding:6px;border-bottom:1px solid #dee2e6;">Version</th>
+                                </tr>
+                            </thead>
+                            <tbody id="device-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="device-table-status" style="font-size:0.65rem;color:#6c757d;margin-top:0.4rem;">No data.</div>
+                </div>
+                <div class="chart-container" style="margin-bottom:1.5rem;">
+                    <h3 style="margin-bottom:0.75rem;">Templates</h3>
+                    <div id="vmanage-templates" style="font-size:0.7rem;color:#6c757d;">No templates...</div>
+                </div>
+                <div class="chart-container" id="vmanage-device-tools" style="display:none;">
+                    <h3 style="margin-bottom:0.75rem;">Device Tools: <span id="vm-tools-device"></span></h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:1rem;">
+                        <div style="flex:1;min-width:200px;">
+                            <h4 style="margin:0 0 0.5rem 0;font-size:0.8rem;">Ping</h4>
+                            <input id="vm-tool-target" placeholder="Target IP" class="search-input" style="padding:0.4rem;margin-bottom:0.4rem;">
+                            <input id="vm-tool-vpn" placeholder="VPN (default 0)" class="search-input" style="padding:0.4rem;margin-bottom:0.4rem;">
+                            <button class="btn btn-outline" style="width:100%;" onclick="vmToolPing()">Ping</button>
+                        </div>
+                        <div style="flex:1;min-width:200px;">
+                            <h4 style="margin:0 0 0.5rem 0;font-size:0.8rem;">Traceroute</h4>
+                            <input id="vm-tool-tr-target" placeholder="Target IP" class="search-input" style="padding:0.4rem;margin-bottom:0.4rem;">
+                            <input id="vm-tool-tr-vpn" placeholder="VPN (default 0)" class="search-input" style="padding:0.4rem;margin-bottom:0.4rem;">
+                            <button class="btn btn-outline" style="width:100%;" onclick="vmToolTraceroute()">Traceroute</button>
+                        </div>
+                        <div style="flex:1;min-width:200px;">
+                            <h4 style="margin:0 0 0.5rem 0;font-size:0.8rem;">NSLookup</h4>
+                            <input id="vm-tool-ns-host" placeholder="Hostname" class="search-input" style="padding:0.4rem;margin-bottom:0.4rem;">
+                            <input id="vm-tool-ns-dns" placeholder="DNS Server (8.8.8.8)" class="search-input" style="padding:0.4rem;margin-bottom:0.4rem;">
+                            <button class="btn btn-outline" style="width:100%;" onclick="vmToolNslookup()">Lookup</button>
+                        </div>
+                        <div style="flex:1;min-width:200px;">
+                            <h4 style="margin:0 0 0.5rem 0;font-size:0.8rem;">ARP & Interfaces</h4>
+                            <input id="vm-tool-vpn-arp" placeholder="VPN for ARP (0)" class="search-input" style="padding:0.4rem;margin-bottom:0.4rem;">
+                            <div style="display:flex;gap:0.3rem;">
+                                <button class="btn btn-outline" style="flex:1;" onclick="vmToolARP()">ARP</button>
+                                <button class="btn btn-outline" style="flex:1;" onclick="vmToolInterfaces()">Interfaces</button>
+                            </div>
+                        </div>
+                    </div>
+                    <pre id="vm-tool-output" style="background:#111;color:#0ff;padding:0.6rem;border-radius:6px;max-height:240px;overflow:auto;font-size:0.65rem;margin-top:0.75rem;">Tools output...</pre>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Global variables
+        let devicesData = [];
+        let vmanageDevices = [];
+        let currentSection = 'dashboard';
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeChart();
+            loadDevices();
+            loadVManageDevices();
+            updateStats();
+            // Ensure Edge Statistics is wired even if user hasn't clicked the sidebar yet
+            try { esInitIfNeeded(); } catch (e) { console.warn('Edge Stats init error:', e); }
+        });
+
+        // Navigation
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.style.display = 'none';
+            });
+
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // Show selected section
+            document.getElementById(sectionName + '-section').style.display = 'block';
+
+            // Add active class to selected nav item (guard in case no event context)
+            try { if (window.event && window.event.target) { window.event.target.classList.add('active'); } } catch(_) {}
+
+            currentSection = sectionName;
+
+            // Load section-specific data
+            if (sectionName === 'devices') {
+                loadDevices();
+            } else if (sectionName === 'ssh-console') {
+                loadSSHDevices();
+            } else if (sectionName === 'edge-stats') {
+                esInitIfNeeded();
+            } else if (sectionName === 'vmanage') {
+                loadVManageContent();
+            }
+        }
+
+        // Initialize traffic chart
+        function initializeChart() {
+            const ctx = document.getElementById('trafficChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
+                    datasets: [
+                        {
+                            label: 'Incoming Traffic',
+                            data: [200, 190, 300, 500, 200, 300, 450],
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Outgoing Traffic',
+                            data: [180, 170, 250, 400, 180, 250, 350],
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f8f9fa' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // Load devices
+        async function loadDevices() {
+            try {
+                const response = await fetch('/api/router/list');
+                const data = await response.json();
+                
+                devicesData = data.routers || [];
+                renderDevices(devicesData);
+            } catch (error) {
+                console.error('Error loading devices:', error);
+                document.getElementById('devices-grid').innerHTML = 
+                    '<div class="loading">Failed to load devices</div>';
+            }
+        }
+
+        // Load SSH devices (vManage edge devices)
+        async function loadSSHDevices() {
+            try {
+                // First get vManage connections
+                const vmanageResponse = await fetch('/api/vmanage/list');
+                const vmanageData = await vmanageResponse.json();
+                
+                if (vmanageData.success && vmanageData.vmanage_connections.length > 0) {
+                    const vmanageName = vmanageData.vmanage_connections[0];
+                    const devicesResponse = await fetch(`/api/vmanage/${vmanageName}/devices`);
+                    const devicesData = await devicesResponse.json();
+                    
+                    if (devicesData.success) {
+                        // Filter edge devices only
+                        const edgeDevices = devicesData.devices.filter(device => {
+                            const deviceType = (device['device-type'] || '').toLowerCase();
+                            return deviceType.includes('vedge') || deviceType.includes('cedge') || deviceType.includes('edge');
+                        });
+                        
+                        renderSSHDevices(edgeDevices);
+                    } else {
+                        throw new Error('Failed to load devices');
+                    }
+                } else {
+                    document.getElementById('ssh-devices-grid').innerHTML = 
+                        '<div class="loading">No vManage connection available</div>';
+                }
+            } catch (error) {
+                console.error('Error loading SSH devices:', error);
+                document.getElementById('ssh-devices-grid').innerHTML = 
+                    '<div class="loading">Failed to load edge devices</div>';
+            }
+        }
+
+        // ================= Edge Statistics =================
+        let esInitialized = false;
+        let esIfaceChart = null;
+        let esTlocChart = null;
+
+        function esSetNote(msg){
+            const n = document.getElementById('es-note');
+            if (n) n.textContent = msg || '';
+        }
+
+        async function esApi(path, opts){
+            const r = await fetch(path, opts);
+            if (!r.ok) throw new Error(await r.text());
+            return r.json();
+        }
+
+        async function esLoadSessions(){
+            const s = document.getElementById('es-session');
+            const data = await esApi('/api/vmanage/list');
+            s.innerHTML = (data.vmanage_connections||[]).map(n=>`<option value="${n}">${n}</option>`).join('');
+        }
+
+        async function esLoadTenants(){
+            const name = document.getElementById('es-session').value;
+            if (!name) return;
+            const t = await esApi(`/api/vmanage/${encodeURIComponent(name)}/tenants`);
+            const arr = t.tenants || t.data || [];
+            const sel = document.getElementById('es-tenant');
+            sel.innerHTML = `<option value="">(no tenant)</option>` + arr.map(x=>`<option value="${x.tenantId||x.tenant_id||x.id}">${x.tenantName||x.name||x.id}</option>`).join('');
+        }
+
+        async function esSwitchTenantIfNeeded(){
+            const name = document.getElementById('es-session').value;
+            const tenantId = document.getElementById('es-tenant').value;
+            if (tenantId){
+                await esApi(`/api/vmanage/${encodeURIComponent(name)}/tenant/switch`, {
+                    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({tenant_id: tenantId})
+                });
+                await esApi(`/api/vmanage/${encodeURIComponent(name)}/tenant/refresh`, { method:'POST' });
+            }
+        }
+
+        function esNormalizeDevices(raw){
+            if (!Array.isArray(raw)) return [];
+            const out = []; const seen = new Set();
+            for(const d of raw){
+                const ip = d['system-ip']||d.system_ip||d.systemIp||d.deviceIp||d.device_ip;
+                const type = (d['device-type']||d.deviceType||d.personality||'').toLowerCase();
+                const name = (
+                    d.hostname || d['host-name'] || d.host_name || d.hostName ||
+                    d['device-name'] || d.deviceName || d.name || d.deviceModel || ''
+                );
+                if (!ip || seen.has(ip)) continue;
+                if (type.includes('vedge')||type.includes('cedge')||type==='edge'){
+                    seen.add(ip); out.push({ip, name: name || ip});
+                }
+            }
+            return out;
+        }
+
+        async function esRefreshDevices(){
+            const name = document.getElementById('es-session').value;
+            if (!name) return;
+            await esSwitchTenantIfNeeded();
+            const ed = await esApi(`/api/vmanage/${encodeURIComponent(name)}/edge-devices?t=${Date.now()}`);
+            const devices = esNormalizeDevices(ed.devices||ed.data||[]);
+            const sel = document.getElementById('es-device');
+            sel.innerHTML = devices.map(d=>{
+                const label = d.name && d.name !== d.ip ? `${d.name} (${d.ip})` : d.ip;
+                return `<option value="${d.ip}">${label}</option>`;
+            }).join('');
+            esSetNote(`Loaded ${devices.length} devices${ed.source_endpoint?` from ${ed.source_endpoint}`:''}`);
+            await esLoadInterfaces();
+        }
+
+        // Highcharts configuration for Interface Statistics
+        function createHighchart(containerId, title, series) {
+            return Highcharts.chart(containerId, {
+                chart: {
+                    type: 'line',
+                    animation: true,
+                    backgroundColor: '#ffffff',
+                    borderRadius: 8,
+                    style: {
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }
+                },
+                title: {
+                    text: title,
+                    style: {
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#2c3e50'
+                    }
+                },
+                xAxis: {
+                    type: 'datetime',
+                    title: {
+                        text: 'Time'
+                    },
+                    gridLineWidth: 1,
+                    gridLineColor: '#e9ecef'
+                },
+                yAxis: {
+                    title: {
+                        text: 'Throughput (Kbps)'
+                    },
+                    gridLineColor: '#e9ecef'
+                },
+                tooltip: {
+                    shared: true,
+                    crosshairs: true,
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#007bff',
+                    borderRadius: 6,
+                    shadow: true
+                },
+                legend: {
+                    enabled: true,
+                    align: 'center',
+                    verticalAlign: 'bottom',
+                    borderWidth: 0
+                },
+                plotOptions: {
+                    line: {
+                        animation: true,
+                        marker: {
+                            enabled: false,
+                            states: {
+                                hover: {
+                                    enabled: true,
+                                    radius: 5
+                                }
+                            }
+                        }
+                    }
+                },
+                series: series,
+                credits: {
+                    enabled: false
+                },
+                exporting: {
+                    enabled: true
+                }
+            });
+        }
+
+        // Highcharts configuration for TLOC statistics
+
+        // Chart instances managed by createHighchart and createAmChart functions
+
+        function esSeries(data, key, label, color){
+            console.log(`[DEBUG] esSeries called with key: ${key}, label: ${label}, data length: ${data.length}`);
+            
+            // Convert epoch timestamps to readable format (match attachment style)
+            const labels = data.map(p => {
+                const timestamp = p.entry_time||p.entryTime||p.statisticsTime||p.time||'';
+                if (timestamp && !isNaN(timestamp)) {
+                    const date = new Date(parseInt(timestamp));
+                    return date.toLocaleString('en-US', { 
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                }
+                return String(timestamp);
+            });
+            console.log(`[DEBUG] Extracted labels: ${labels.slice(0,3)}... (showing first 3)`);
+            
+            const values = data.map(p => {
+                // Support multiple fields; convert bps to kbps if needed
+                let v = undefined;
+                const candidates = [
+                    key,
+                    key === 'rx_kbps' ? 'rx_bps' : (key === 'tx_kbps' ? 'tx_bps' : null),
+                    key === 'rx_kbps' ? 'input_kbps' : (key === 'tx_kbps' ? 'output_kbps' : null),
+                    key === 'rx_kbps' ? 'input_rate' : (key === 'tx_kbps' ? 'output_rate' : null),
+                    key === 'rx_kbps' ? 'rx_kbps' : (key === 'tx_kbps' ? 'tx_kbps' : null)
+                ].filter(Boolean);
+                
+                // Debug: show available keys in first data point
+                if (data.indexOf(p) === 0) {
+                    console.log(`[DEBUG] First data point keys:`, Object.keys(p));
+                    console.log(`[DEBUG] Candidates for ${key}:`, candidates);
+                }
+                
+                for(const k of candidates){ if(p[k] !== undefined){ v = p[k]; break; } }
+                if(v === undefined){
+                    // generic fallbacks
+                    if(key === 'rx_kbps') v = p.rx_kbps ?? p.rx_bps ?? p.input_rate ?? p.input_kbps;
+                    else if(key === 'tx_kbps') v = p.tx_kbps ?? p.tx_bps ?? p.output_rate ?? p.output_kbps;
+                    else if(key === 'loss') v = p.loss;
+                    else if(key === 'jitter') v = p.jitter;
+                }
+                if(v === undefined) v = 0;
+                // if looks like bps (large numbers) convert to kbps
+                if(Math.abs(v) > 10000 && label.toLowerCase().includes('kbps') && String(candidates).includes('bps')){
+                    v = v / 1000.0;
+                }
+                return v;
+            });
+            
+            console.log(`[DEBUG] Extracted values for ${key}: ${values.slice(0,3)}... (showing first 3)`);
+            return { labels, dataset: { label, data: values, borderColor: color, borderWidth: 2, pointRadius: 0 } };
+        }
+
+        function esGetCheckedInterfaces(){
+            return Array.from(document.querySelectorAll('#es-iface-list input[type="checkbox"]:checked')).map(cb=>cb.value);
+        }
+
+        async function esLoadInterfaces(){
+            const name = document.getElementById('es-session').value;
+            const deviceIp = document.getElementById('es-device').value;
+            const list = document.getElementById('es-iface-list');
+            list.innerHTML = '';
+            if (!name || !deviceIp) return;
+            try{
+                const data = await esApi(`/api/vmanage/${encodeURIComponent(name)}/device/${encodeURIComponent(deviceIp)}/interfaces`);
+                const arr = data.interfaces || data.data || [];
+                // Normalize interface names
+                const names = arr.map(x=> x.ifname || x.interface || x.if_name || x.name || x.if || '').filter(Boolean);
+                const uniq = Array.from(new Set(names)).sort();
+                list.innerHTML = uniq.map(n=>`<label style="display:flex;gap:6px;align-items:center;font-size:0.75rem;color:#495057;"><input type="checkbox" value="${n}"> <span>${n}</span></label>`).join('');
+            }catch(e){ esSetNote('Failed to load interfaces: '+String(e)); }
+        }
+
+        // Time range and interval selection functions
+        let selectedTimeHours = 24;
+        let selectedInterval = '5min';
+
+        function selectTimeRange(button) {
+            // Remove active class from all time range buttons
+            document.querySelectorAll('.time-btn[data-hours]').forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            button.classList.add('active');
+            selectedTimeHours = parseInt(button.dataset.hours);
+            
+            // Auto-adjust interval based on time range
+            let recommendedInterval = '5min';
+            if (selectedTimeHours >= 168) { // 7 days
+                recommendedInterval = '1day';
+            } else if (selectedTimeHours >= 24) { // 24+ hours
+                recommendedInterval = '1hour';
+            }
+            
+            // Auto-select recommended interval
+            document.querySelectorAll('.time-btn[data-interval]').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.interval === recommendedInterval) {
+                    btn.classList.add('active');
+                    selectedInterval = recommendedInterval;
+                }
+            });
+            
+            console.log('[DEBUG] Selected time range:', selectedTimeHours, 'hours, auto interval:', selectedInterval);
+        }
+
+        function selectInterval(button) {
+            // Remove active class from all interval buttons
+            document.querySelectorAll('.time-btn[data-interval]').forEach(btn => btn.classList.remove('active'));
+            // Add active class to clicked button
+            button.classList.add('active');
+            selectedInterval = button.dataset.interval;
+            console.log('[DEBUG] Manual interval selection:', selectedInterval);
+            console.log('[DEBUG] Current time range:', selectedTimeHours, 'hours');
+        }
+
+        async function esLoadInterfaceStats(){
+            console.log('[DEBUG] esLoadInterfaceStats called');
+            const name = document.getElementById('es-session').value;
+            const deviceIp = document.getElementById('es-device').value;
+            console.log('[DEBUG] Session:', name, 'Device:', deviceIp);
+            if (!name || !deviceIp) {
+                console.log('[DEBUG] Missing session or device, returning');
+                return;
+            }
+            await esSwitchTenantIfNeeded();
+            const checked = esGetCheckedInterfaces();
+            const ifaceInput = document.getElementById('es-iface').value || undefined;
+            const targets = checked.length ? checked : (ifaceInput ? [ifaceInput] : []);
+            
+            // Use button-based selection instead of dropdowns
+            const range = selectedTimeHours >= 168 ? `last ${selectedTimeHours / 24} days` : `last ${selectedTimeHours} hours`;
+            const interval = selectedInterval;
+            console.log('[DEBUG] Targets:', targets, 'Range:', range, 'Interval:', interval);
+
+            let datasets = [];
+            let labels = [];
+            // If no selection, still do one call with no interface filter
+            if (targets.length === 0){
+                const body = { device_ip: deviceIp, time_range: range, interval };
+                console.log('[DEBUG] Stats request body:', body);
+                const res = await esApi(`/api/vmanage/${encodeURIComponent(name)}/stats/interface`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                console.log('[DEBUG] Stats API response:', res);
+                const data = res.data || [];
+                console.log('[DEBUG] Extracted data array:', data);
+                console.log('[DEBUG] First data point sample:', data[0]);
+                const showTx = document.getElementById('es-show-tx').checked;
+                const rx = esSeries(data, 'rx_kbps', 'RX kbps', '#007bff');
+                console.log('[DEBUG] RX series:', rx);
+                labels = rx.labels;
+                datasets = [rx.dataset];
+                
+                if (showTx) {
+                    const tx = esSeries(data, 'tx_kbps', 'TX kbps', '#28a745');
+                    console.log('[DEBUG] TX series:', tx);
+                    if (tx.labels.length > labels.length) labels = tx.labels;
+                    datasets.push(tx.dataset);
+                }
+                console.log('[DEBUG] Final labels:', labels);
+                console.log('[DEBUG] Final datasets:', datasets);
+                esSetNote(`Interface stats loaded${res.source_endpoint?` from ${res.source_endpoint}`:''}`);
+            } else {
+                // Multiple interfaces: get RX and optionally TX for each interface
+                const showTx = document.getElementById('es-show-tx').checked;
+                const palette = ['#007bff','#28a745','#dc3545','#fd7e14','#6610f2','#20c997','#6f42c1','#e83e8c'];
+                let colorIdx = 0;
+                for (const ifn of targets){
+                    const body = { device_ip: deviceIp, interface: ifn, time_range: range, interval };
+                    const res = await esApi(`/api/vmanage/${encodeURIComponent(name)}/stats/interface`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                    const data = res.data || [];
+                    
+                    // Add RX series
+                    const rxSeries = esSeries(data, 'rx_kbps', `${ifn} RX`, palette[colorIdx % palette.length]);
+                    if (rxSeries.labels.length > labels.length) labels = rxSeries.labels;
+                    datasets.push(rxSeries.dataset);
+                    colorIdx++;
+                    
+                    // Add TX series if enabled
+                    if (showTx) {
+                        const txSeries = esSeries(data, 'tx_kbps', `${ifn} TX`, palette[colorIdx % palette.length]);
+                        datasets.push(txSeries.dataset);
+                        colorIdx++;
+                    }
+                }
+                const seriesCount = showTx ? targets.length * 2 : targets.length;
+                esSetNote(`Loaded ${targets.length} interfaces (${seriesCount} series)`);
+            }
+            // Convert Chart.js datasets to Highcharts series format
+            const highchartsSeries = datasets.map(dataset => ({
+                name: dataset.label,
+                data: dataset.data.map((point, index) => [
+                    new Date(labels[index]).getTime(),
+                    point
+                ]),
+                color: dataset.borderColor,
+                marker: {
+                    enabled: false
+                },
+                lineWidth: 2
+            }));
+
+            // Destroy existing chart if it exists
+            if (esIfaceChart) {
+                esIfaceChart.destroy();
+            }
+            
+            // Create new Highcharts chart
+            esIfaceChart = createHighchart('es-iface-chart', `Interface Statistics - ${deviceIp}`, highchartsSeries);
+        }
+
+        async function esLoadTlocStats(){
+            const name = document.getElementById('es-session').value;
+            const deviceIp = document.getElementById('es-device').value;
+            if (!name || !deviceIp) return;
+            await esSwitchTenantIfNeeded();
+            const body = {
+                device_ip: deviceIp,
+                color: document.getElementById('es-tloc-color').value || undefined,
+                time_range: selectedTimeHours >= 168 ? `last ${selectedTimeHours / 24} days` : `last ${selectedTimeHours} hours`,
+                interval: selectedInterval
+            };
+            const res = await esApi(`/api/vmanage/${encodeURIComponent(name)}/stats/tloc`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+            const data = res.data || [];
+            console.log('[DEBUG] TLOC API response:', res);
+            console.log('[DEBUG] TLOC data length:', data.length);
+            
+            const loss = esSeries(data, 'loss', 'Loss %', '#dc3545');
+            const jitter = esSeries(data, 'jitter', 'Jitter ms', '#fd7e14');
+            const labels = loss.labels.length >= jitter.labels.length ? loss.labels : jitter.labels;
+            
+            console.log('[DEBUG] Loss data points:', loss.dataset.data.length);
+            console.log('[DEBUG] Jitter data points:', jitter.dataset.data.length);
+            console.log('[DEBUG] Starting TLOC chart creation...');
+            console.log('[DEBUG] Labels length:', labels.length);
+            
+            if (labels.length === 0) {
+                document.getElementById('es-tloc-chart').innerHTML = '<div style="text-align: center; padding: 50px; color: #6c757d; font-size: 14px;">No TLOC data available for selected time range</div>';
+                esSetNote('No TLOC data found for the specified parameters');
+                return;
+            }
+            
+            // Convert TLOC data to Highcharts series format (same as Interface Statistics)
+            const highchartsTlocSeries = [
+                {
+                    name: 'Loss %',
+                    data: loss.dataset.data.map((point, index) => [
+                        new Date(loss.labels[index]).getTime(),
+                        point
+                    ]),
+                    color: '#dc3545',
+                    marker: {
+                        enabled: false
+                    },
+                    lineWidth: 2
+                },
+                {
+                    name: 'Jitter ms',
+                    data: jitter.dataset.data.map((point, index) => [
+                        new Date(jitter.labels[index]).getTime(),
+                        point
+                    ]),
+                    color: '#fd7e14',
+                    marker: {
+                        enabled: false
+                    },
+                    lineWidth: 2
+                }
+            ];
+
+            // Destroy existing chart if it exists
+            if (esTlocChart) {
+                esTlocChart.destroy();
+            }
+
+            // Create a single Highcharts chart with multiple series (matching Interface Statistics format)
+            esTlocChart = createHighchart('es-tloc-stats', 'TLOC Statistics', seriesData);
+
+
+
+            console.log('[DEBUG] TLOC chart creation completed');
+            esSetNote(`TLOC stats loaded${res.source_endpoint?` from ${res.source_endpoint}`:''}`);
+        }
+
+        function esBind(){
+            console.log('[DEBUG] Binding Edge Stats event listeners...');
+            document.getElementById('es-session').addEventListener('change', async ()=>{ console.log('[DEBUG] Session changed'); await esLoadTenants(); await esRefreshDevices(); });
+            document.getElementById('es-tenant').addEventListener('change', ()=>{ console.log('[DEBUG] Tenant changed'); esRefreshDevices(); });
+            document.getElementById('es-device').addEventListener('change', ()=>{ console.log('[DEBUG] Device changed'); esLoadInterfaces(); });
+            document.getElementById('es-refresh').addEventListener('click', ()=>{ console.log('[DEBUG] Refresh devices clicked'); esRefreshDevices(); });
+            document.getElementById('es-load').addEventListener('click', ()=>{ console.log('[DEBUG] Load Statistics clicked'); esLoadInterfaceStats(); });
+            document.getElementById('es-load-tloc').addEventListener('click', ()=>{ console.log('[DEBUG] Load TLOC clicked'); esLoadTlocStats(); });
+            document.getElementById('es-iface-all').addEventListener('click', ()=>{
+                console.log('[DEBUG] Select All clicked');
+                document.querySelectorAll('#es-iface-list input[type="checkbox"]').forEach(cb=>cb.checked=true);
+            });
+            document.getElementById('es-iface-none').addEventListener('click', ()=>{
+                console.log('[DEBUG] Clear clicked');
+                document.querySelectorAll('#es-iface-list input[type="checkbox"]').forEach(cb=>cb.checked=false);
+            });
+            console.log('[DEBUG] Event listeners bound successfully');
+        }
+
+        async function esInitIfNeeded(){
+            console.log('[DEBUG] esInitIfNeeded called, initialized:', esInitialized);
+            if (esInitialized) return;
+            esInitialized = true;
+            try{
+                console.log('[DEBUG] Starting Edge Stats initialization...');
+                await esLoadSessions();
+                await esLoadTenants();
+                await esRefreshDevices();
+                esBind();
+                console.log('[DEBUG] Edge Stats initialization complete');
+            }catch(e){
+                console.error('[DEBUG] Edge Stats init error:', e);
+                esSetNote(String(e));
+            }
+        }
+
+        // Render devices
+        function renderDevices(devices) {
+            const grid = document.getElementById('devices-grid');
+            
+            if (devices.length === 0) {
+                grid.innerHTML = '<div class="loading">No devices connected</div>';
+                return;
+            }
+
+            grid.innerHTML = devices.map(device => {
+                const isConnected = (device.connected === true) || device.status === 'connected';
+                const port = device.port || 22;
+                const username = device.username || '-';
+                return `
+                <div class="device-card">
+                    <div class="device-header">
+                        <div class="device-name">${device.name}</div>
+                        <div class="device-status ${isConnected ? 'online' : 'offline'}">
+                            ${isConnected ? 'Online' : 'Offline'}
+                        </div>
+                    </div>
+                    <div class="device-info">
+                        <div class="device-info-item">
+                            <div class="device-info-label">IP Address</div>
+                            <div class="device-info-value">${device.host}</div>
+                        </div>
+                        <div class="device-info-item">
+                            <div class="device-info-label">Type</div>
+                            <div class="device-info-value">${device.device_type || 'Router'}</div>
+                        </div>
+                        <div class="device-info-item">
+                            <div class="device-info-label">Port</div>
+                            <div class="device-info-value">${port}</div>
+                        </div>
+                        <div class="device-info-item">
+                            <div class="device-info-label">Username</div>
+                            <div class="device-info-value">${username}</div>
+                        </div>
+                    </div>
+                    <div class="device-actions">
+                        <button class="btn btn-primary" onclick="openSSHConsole('${device.name}')" title="Open interactive SSH console in new tab">
+                            <i class="fas fa-terminal"></i>
+                            Console
+                        </button>
+                        <button class="btn btn-outline" onclick="configureDevice('${device.name}')">
+                            <i class="fas fa-cog"></i>
+                            Config
+                        </button>
+                        <button class="btn btn-outline" style="background:#ffe5e5;border-color:#ffc9c9;color:#c00;" onclick="disconnectRouterUI('${device.name}')">
+                            <i class="fas fa-plug-circle-xmark"></i>
+                            Disconnect
+                        </button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function disconnectRouterUI(name){
+            if(!confirm('Disconnect router '+name+'?')) return;
+            try{ await fetchJSON('/api/router/'+name,{method:'DELETE'}); await loadDevices(); }catch(e){ alert('Disconnect error: '+e.message); }
+        }
+
+        // Render SSH devices
+        let sshEdgeDevices = [];
+        function renderSSHDevices(devices) {
+            sshEdgeDevices = devices;
+            const grid = document.getElementById('ssh-devices-grid');
+            
+            if (devices.length === 0) {
+                grid.innerHTML = '<div class="loading">No edge devices available</div>';
+                return;
+            }
+
+            grid.innerHTML = devices.map(device => `
+                <div class="device-card">
+                    <div class="device-header">
+                        <div class="device-name">${device['host-name'] || 'Unknown'}</div>
+                        <div class="device-status ${(device.reachability === 'reachable' || device.status === 'reachable') ? 'online' : 'offline'}">
+                            ${(device.reachability === 'reachable' || device.status === 'reachable') ? 'Reachable' : 'Unreachable'}
+                        </div>
+                    </div>
+                    <div class="device-info">
+                        <div class="device-info-item">
+                            <div class="device-info-label">System IP</div>
+                            <div class="device-info-value">${device['system-ip'] || device.deviceId || 'N/A'}</div>
+                        </div>
+                        <div class="device-info-item">
+                            <div class="device-info-label">Type</div>
+                            <div class="device-info-value">${device['device-type'] || device.deviceType || 'Edge Device'}</div>
+                        </div>
+                        <div class="device-info-item">
+                            <div class="device-info-label">Site ID</div>
+                            <div class="device-info-value">${device['site-id'] || 'N/A'}</div>
+                        </div>
+                        <div class="device-info-item">
+                            <div class="device-info-label">Version</div>
+                            <div class="device-info-value">${device.version || 'N/A'}</div>
+                        </div>
+                    </div>
+                    <div class="device-actions">
+                        <button class="btn btn-primary" onclick="sshToDevice('${device['system-ip'] || device.deviceId}', '${device['host-name']}')">
+                            <i class="fas fa-terminal"></i>
+                            SSH
+                        </button>
+                        <button class="btn btn-outline" onclick="showDeviceTools('${device['system-ip'] || device.deviceId}')">
+                            <i class="fas fa-tools"></i>
+                            Tools
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        document.getElementById('ssh-device-search')?.addEventListener('input', function(e){
+            const term = e.target.value.toLowerCase();
+            const filtered = sshEdgeDevices.filter(d => (d['host-name']||'').toLowerCase().includes(term) || (d['system-ip']||'').toLowerCase().includes(term));
+            renderSSHDevices(filtered);
+        });
+
+        // Load vManage devices
+        async function loadVManageDevices() {
+            try {
+                const response = await fetch('/api/vmanage/list');
+                const data = await response.json();
+                vmanageDevices = data.vmanage_connections || [];
+            } catch (error) {
+                console.error('Error loading vManage devices:', error);
+            }
+        }
+
+        // Update stats
+        async function updateStats() {
+            try {
+                // Update total devices
+                const devicesResponse = await fetch('/api/router/list');
+                const devicesData = await devicesResponse.json();
+                const totalDevices = devicesData.routers ? devicesData.routers.length : 0;
+                document.getElementById('total-devices').textContent = totalDevices;
+
+                // Update other stats (placeholder values)
+                document.getElementById('online-devices').textContent = Math.floor(totalDevices * 0.85);
+                document.getElementById('uptime').textContent = '99.5%';
+                document.getElementById('alerts').textContent = Math.floor(Math.random() * 10);
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+
+        // Device actions
+        function connectToDevice(deviceName) {
+            alert(`Connecting to ${deviceName}...`);
+            // Implement device connection logic
+        }
+
+        function configureDevice(deviceName) {
+            alert(`Opening configuration for ${deviceName}...`);
+            // Implement device configuration logic
+        }
+
+        function sshToDevice(systemIP, hostname) {
+            alert(`SSH to ${hostname} (${systemIP})...`);
+            // Implement SSH connection logic
+        }
+
+        function showDeviceTools(systemIP) {
+            alert(`Opening tools for device ${systemIP}...`);
+            // Implement device tools logic
+        }
+
+        // Search functionality
+        document.getElementById('device-search')?.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredDevices = devicesData.filter(device => 
+                device.name.toLowerCase().includes(searchTerm) ||
+                device.host.toLowerCase().includes(searchTerm)
+            );
+            renderDevices(filteredDevices);
+        });
+
+        // Refresh data
+        function refreshData() {
+            loadDevices();
+            loadVManageDevices();
+            updateStats();
+            if (currentSection === 'ssh-console') {
+                loadSSHDevices();
+            }
+        }
+
+        // Load vManage content
+        function loadVManageContent() {
+            // This would load the existing vManage interface
+            // (Deprecated placeholder removed) Now dynamic UI already in DOM.
+        }
+
+        // ========== vManage Multi-session Logic ==========
+        let activeVManage = null;
+        let vmanageInstances = []; // session names
+        let vmanageSessionsInfo = {}; // {sessionName: {host, connected_at, status, ...}}
+        let tenantsCache = {}; // {sessionName: [{tenantId, name, ...}]}
+        let activeTenant = null;
+
+        async function refreshVManageAll(){
+            try{
+                const res = await fetch('/api/vmanage/list');
+                const data = await res.json();
+                const connectedSessions = data.vmanage_connections || [];
+                
+                // Update instances list
+                vmanageInstances = connectedSessions;
+                
+                // Clean up session info for disconnected sessions
+                Object.keys(vmanageSessionsInfo).forEach(sessionName => {
+                    if (!connectedSessions.includes(sessionName)) {
+                        delete vmanageSessionsInfo[sessionName];
+                        delete tenantsCache[sessionName];
+                    }
+                });
+                
+                // Update active session if it was disconnected
+                if (activeVManage && !connectedSessions.includes(activeVManage)) {
+                    activeVManage = null;
+                    activeTenant = null;
+                    document.getElementById('active-vmanage-label').textContent = '-';
+                    document.getElementById('active-tenant-label').textContent = '-';
+                }
+                
+                renderVManageInstanceList();
+                console.log(`Refreshed: ${connectedSessions.length} vManage sessions active`);
+            }catch(e){ 
+                console.error('vManage list error',e); 
+            }
+        }
+
+        function renderVManageInstanceList(){
+            const container = document.getElementById('vmanage-instance-list'); 
+            if(!container) return;
+            
+            if(vmanageInstances.length===0){ 
+                container.innerHTML='<div style="padding:1rem;text-align:center;color:#6c757d;font-size:0.75rem;">No sessions connected</div>'; 
+                return; 
+            }
+            
+            // Enhanced session cards with more information
+            container.innerHTML = vmanageInstances.map(name => {
+                const isActive = activeVManage === name;
+                const sessionInfo = vmanageSessionsInfo[name] || {};
+                const connectionTime = sessionInfo.connected_at ? new Date(sessionInfo.connected_at).toLocaleTimeString() : 'Unknown';
+                const host = sessionInfo.host || 'N/A';
+                const tenantCount = tenantsCache[name] ? tenantsCache[name].length : 0;
+                
+                return `
+                <div style="padding:0.75rem;border-bottom:1px solid #e1e5ea;cursor:pointer;${isActive ? 'background:#f0f7ff;border-left:4px solid #0d6efd;' : 'border-left:4px solid transparent;'}" onclick="setActiveVManage('${name}')">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                        <div style="flex:1;">
+                            <div style="font-weight:600;font-size:0.8rem;color:#2c3e50;margin-bottom:0.25rem;">
+                                <i class="fas fa-server" style="color:${isActive ? '#0d6efd' : '#6c757d'};margin-right:0.25rem;"></i>
+                                ${name}
+                                ${isActive ? '<span style="color:#28a745;font-size:0.65rem;margin-left:0.5rem;"><i class="fas fa-check-circle"></i> Active</span>' : ''}
+                            </div>
+                            <div style="font-size:0.65rem;color:#6c757d;margin-bottom:0.25rem;">
+                                <i class="fas fa-globe"></i> ${host}
+                            </div>
+                            <div style="display:flex;gap:1rem;font-size:0.6rem;color:#adb5bd;">
+                                <span><i class="fas fa-clock"></i> ${connectionTime}</span>
+                                <span><i class="fas fa-users"></i> ${tenantCount} tenant${tenantCount !== 1 ? 's' : ''}</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:0.25rem;">
+                            <button class="btn btn-outline" style="padding:0.2rem 0.4rem;font-size:0.65rem;" onclick="event.stopPropagation(); testVManageConnection('${name}')" title="Test Connection">
+                                <i class="fas fa-heartbeat"></i>
+                            </button>
+                            <button class="btn btn-outline" style="padding:0.2rem 0.4rem;font-size:0.65rem;" onclick="event.stopPropagation(); removeVManage('${name}')" title="Disconnect">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function setActiveVManage(name){
+            activeVManage = name; activeTenant = null;
+            document.getElementById('active-vmanage-label').textContent=name;
+            renderVManageInstanceList();
+            await loadTenantsForActive();
+        }
+
+        async function removeVManage(name){
+            if(!confirm('Disconnect vManage '+name+'?')) return;
+            try{ await fetch('/api/vmanage/'+name,{method:'DELETE'}); }catch(e){ console.error(e); }
+            if(activeVManage===name){ activeVManage=null; activeTenant=null; }
+            await refreshVManageAll();
+            clearTenantUI();
+            clearDevicesUI();
+        }
+
+        function clearTenantUI(){
+            const sel=document.getElementById('tenant-select'); if(sel) sel.innerHTML='';
+            document.getElementById('tenant-note').textContent='No tenants loaded.';
+            document.getElementById('active-tenant-label').textContent='-';
+        }
+        function clearDevicesUI(){
+            document.getElementById('device-table-body').innerHTML='';
+            document.getElementById('device-table-status').textContent='No data.';
+        }
+
+        async function connectVManage(){
+            const payload={
+                name: $('vm-name').value.trim(),
+                host: $('vm-host').value.trim(),
+                username: $('vm-user').value.trim(),
+                password: $('vm-pass').value,
+                port: parseInt($('vm-port').value,10)||443
+            };
+            
+            // Validate session name uniqueness
+            if(vmanageInstances.includes(payload.name)){
+                $('vmanage-connect-status').textContent='Error: Session name already exists';
+                return;
+            }
+            
+            $('vmanage-connect-status').textContent='Connecting...';
+            try{
+                const data = await fetchJSON('/api/vmanage/connect',{method:'POST',body:JSON.stringify(payload)});
+                if(data.success){
+                    $('vmanage-connect-status').textContent=data.message||'Connected successfully';
+                    
+                    // Store session info
+                    vmanageSessionsInfo[payload.name] = {
+                        host: payload.host,
+                        port: payload.port,
+                        username: payload.username,
+                        connected_at: new Date().toISOString(),
+                        status: 'connected'
+                    };
+                    
+                    await refreshVManageAll();
+                    setActiveVManage(payload.name);
+                    
+                    // Clear form after successful connection
+                    clearVManageForm();
+                }else{
+                    $('vmanage-connect-status').textContent='Failed: '+(data.error||'Unknown error');
+                }
+            }catch(e){ 
+                $('vmanage-connect-status').textContent='Error: '+e.message; 
+            }
+        }
+
+        // Preset filling function
+        function fillVManagePreset(name, host, port, username) {
+            $('vm-name').value = name;
+            $('vm-host').value = host;
+            $('vm-port').value = port;
+            $('vm-user').value = username;
+            $('vm-pass').value = ''; // Keep password empty for security
+            $('vm-pass').focus(); // Focus on password field
+        }
+
+        // Clear form function
+        function clearVManageForm() {
+            $('vm-name').value = '';
+            $('vm-host').value = '';
+            $('vm-port').value = '443';
+            $('vm-user').value = '';
+            $('vm-pass').value = '';
+            $('vmanage-connect-status').textContent = '';
+        }
+
+        // Test connection function
+        async function testVManageConnection(sessionName) {
+            try {
+                const res = await fetch(`/api/vmanage/${sessionName}/tenant/current`);
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    console.log(`Connection test OK for ${sessionName}`);
+                    // Update visual indicator if needed
+                } else {
+                    console.warn(`Connection test failed for ${sessionName}`);
+                }
+            } catch (e) {
+                console.error(`Connection test error for ${sessionName}:`, e);
+            }
+        }
+
+        // Disconnect all sessions function
+        async function disconnectAllVManage() {
+            if (!confirm('Disconnect all vManage sessions?')) return;
+            
+            const disconnectPromises = vmanageInstances.map(async name => {
+                try {
+                    await fetch(`/api/vmanage/${name}`, {method: 'DELETE'});
+                    console.log(`Disconnected: ${name}`);
+                } catch (e) {
+                    console.error(`Failed to disconnect ${name}:`, e);
+                }
+            });
+            
+            await Promise.all(disconnectPromises);
+            
+            // Reset state
+            activeVManage = null;
+            activeTenant = null;
+            vmanageInstances = [];
+            vmanageSessionsInfo = {};
+            tenantsCache = {};
+            
+            await refreshVManageAll();
+            clearTenantUI();
+            clearDevicesUI();
+        }
+
+        async function loadTenantsForActive(){
+            clearTenantUI();
+            if(!activeVManage) return;
+            try{
+                const res = await fetch(`/api/vmanage/${activeVManage}/tenants`);
+                if(!res.ok){ throw new Error('Tenant fetch failed'); }
+                const tenants = await res.json();
+                tenantsCache[activeVManage]=tenants.tenants||tenants || [];
+                populateTenantSelect(tenantsCache[activeVManage]);
+            }catch(e){
+                document.getElementById('tenant-note').textContent='Tenant load error: '+e.message;
+            }
+        }
+
+        function populateTenantSelect(arr){
+            const sel=document.getElementById('tenant-select'); if(!sel) return;
+            sel.innerHTML='';
+            if(!arr || arr.length===0){
+                sel.innerHTML='<option value="">(single-tenant / none)</option>';
+                activeTenant=null;
+                document.getElementById('tenant-note').textContent='Single-tenant mode or no tenant data';
+                document.getElementById('active-tenant-label').textContent='-';
+                loadDevicesForTenant();
+                return;
+            }
+            arr.forEach(t=>{
+                const id=t.tenantId||t.id||t.tenant_id||t.name; // fallback keys
+                const name=t.name||id;
+                const opt=document.createElement('option'); opt.value=id; opt.textContent=name; sel.appendChild(opt);
+            });
+            document.getElementById('tenant-note').textContent=arr.length+' tenants loaded';
+            sel.selectedIndex=0;
+            activeTenant=sel.value||null;
+            document.getElementById('active-tenant-label').textContent=activeTenant||'-';
+            loadDevicesForTenant();
+        }
+
+        function onTenantSelectChange(){
+            const sel=document.getElementById('tenant-select');
+            activeTenant=sel.value||null;
+            document.getElementById('active-tenant-label').textContent=activeTenant||'-';
+            switchTenant(activeTenant);
+        }
+
+        async function switchTenant(tenantId){
+            if(!activeVManage) return;
+            if(!tenantId){ 
+                document.getElementById('device-table-status').textContent='No tenant selected';
+                clearDevicesUI();
+                return; 
+            }
+            
+            document.getElementById('device-table-status').textContent='Switching tenant...';
+            try{
+                const switchResult = await fetchJSON(`/api/vmanage/${activeVManage}/tenant/switch`,{method:'POST',body:JSON.stringify({tenant_id:tenantId})});
+                
+                // Show switch result info
+                if(switchResult.success){
+                    const method = switchResult.method || 'unknown';
+                    console.log(`Tenant switch OK using ${method}:`, switchResult.message);
+                    if(switchResult.note) console.log('Note:', switchResult.note);
+                    
+                    // Small delay to allow tenant context to propagate
+                    setTimeout(() => {
+                        loadDevicesForTenant();
+                    }, 500);
+                } else {
+                    document.getElementById('device-table-status').textContent='Tenant switch failed: ' + (switchResult.error || 'Unknown error');
+                    console.error('Tenant switch failed:', switchResult);
+                }
+            }catch(e){ 
+                console.error('Switch tenant error',e); 
+                document.getElementById('device-table-status').textContent='Error switching tenant: ' + e.message;
+            }
+        }
+
+        async function loadDevicesForTenant(){
+            clearDevicesUI();
+            if(!activeVManage){ return; }
+            document.getElementById('device-table-status').textContent='Loading devices...';
+            try{
+                // Refresh tenant context first to fix intermittent issues
+                if(activeTenant) {
+                    try {
+                        await fetchJSON(`/api/vmanage/${activeVManage}/tenant/refresh`, {method: 'POST'});
+                        console.log('Tenant context refreshed');
+                    } catch(refreshError) {
+                        console.warn('Tenant refresh failed:', refreshError);
+                    }
+                }
+                
+                // Add timestamp to prevent caching issues after tenant switch
+                const cacheBuster = Date.now();
+                const res = await fetch(`/api/vmanage/${activeVManage}/edge-devices?t=${cacheBuster}`);
+                const data = await res.json();
+                const devices = normalizeDeviceArray(data);
+                
+                // Log tenant context info if available
+                if(data.source_endpoint) {
+                    console.log(`Loaded ${devices.length} devices from ${data.source_endpoint} for tenant ${activeTenant}`);
+                }
+                if(data.current_tenant_id) {
+                    console.log(`Server tenant context: ${data.current_tenant_id}`);
+                }
+                
+                renderDeviceTable(devices);
+            }catch(e){
+                document.getElementById('device-table-status').textContent='Error: '+e.message;
+            }
+        }
+
+        function normalizeDeviceArray(raw){
+            // Expected structure: { success:True, devices:[...] }
+            if(!raw) return [];
+            if(Array.isArray(raw)) return raw; // sometimes API might already give list
+            if(raw.devices && Array.isArray(raw.devices)) return raw.devices;
+            if(raw.data && Array.isArray(raw.data)) return raw.data; // fallback generic
+            // Look for first array value in object
+            for(const k of Object.keys(raw)){
+                if(Array.isArray(raw[k]) && raw[k].length && typeof raw[k][0]==='object'){
+                    console.warn('Using heuristic device array key',k);
+                    return raw[k];
+                }
+            }
+            console.warn('No device array found. Raw keys:', Object.keys(raw));
+            document.getElementById('device-table-status').textContent='Error: devices array not found. Keys: '+Object.keys(raw).join(', ');
+            return [];
+        }
+
+        function renderDeviceTable(devices){
+            const tbody=document.getElementById('device-table-body');
+            if(!tbody) return;
+            if(!devices || devices.length===0){
+                tbody.innerHTML='';
+                document.getElementById('device-table-status').textContent='No devices.';
+                return;
+            }
+            tbody.innerHTML = devices.map(d=>{
+                const reach=(d.reachability||d.status||'').toLowerCase();
+                const color= reach==='reachable' ? '#0fa958' : '#d63333';
+                return `<tr style="border-bottom:1px solid #f1f3f5;">
+                    <td style="padding:4px 6px;">${d['host-name']||d.host_name||d.hostname||'-'}</td>
+                    <td style="padding:4px 6px;">${d['system-ip']||d.systemIp||d.system_ip||'-'}</td>
+                    <td style="padding:4px 6px;">${d['device-type']||d.deviceType||'-'}</td>
+                    <td style="padding:4px 6px;">${d['site-id']||d.siteId||'-'}</td>
+                    <td style="padding:4px 6px;color:${color};font-weight:600;">${reach || '-'}</td>
+                    <td style="padding:4px 6px;">${d.version||'-'}</td>
+                </tr>`;
+            }).join('');
+            document.getElementById('device-table-status').textContent=devices.length+' devices';
+        }
+
+        // ========== Utility Fetch Helper ==========
+        const $ = (id)=>document.getElementById(id);
+        async function fetchJSON(url, options={}) {
+            const res = await fetch(url, Object.assign({headers:{'Content-Type':'application/json'}}, options));
+            if(!res.ok){
+                const text = await res.text();
+                throw new Error('HTTP '+res.status+' '+text);
+            }
+            return res.json();
+        }
+
+        function openSSHConsole(name){
+            if(!name){ alert('Router name missing'); return; }
+            const url = `/static/ssh_console.html?router=${encodeURIComponent(name)}`;
+            window.open(url,'_blank');
+        }
+
+        function refreshRouterSelects(list){
+            const selects = ['cmd-router-select','cfg-router-select','log-router-select','info-router-select','backup-router-select'];
+            selects.forEach(id=>{ const el = $(id); if(!el) return; el.innerHTML='';
+                list.forEach(r=>{ const opt=document.createElement('option'); opt.value=r.name; opt.textContent=r.name; el.appendChild(opt); });
+            });
+        }
+
+        async function connectRouter(){
+            const payload = {
+                name: $('rc-name').value.trim(),
+                host: $('rc-host').value.trim(),
+                username: $('rc-user').value.trim(),
+                password: $('rc-pass').value,
+                port: parseInt($('rc-port').value,10)||22,
+                device_type: $('rc-type').value.trim()||null
+            };
+            $('router-connect-status').textContent='Connecting...';
+            try{
+                const data = await fetchJSON('/api/router/connect',{method:'POST',body:JSON.stringify(payload)});
+                $('router-connect-status').textContent=data.message||'Connected';
+                await loadDevices();
+            }catch(e){ $('router-connect-status').textContent='Error: '+e.message; }
+        }
+
+        async function executeCommand(){
+            const router = $('cmd-router-select').value;
+            const cmd = $('cmd-input').value.trim();
+            if(!router||!cmd){ 
+                alert('Please select router and enter command');
+                return; 
+            }
+            $('cmd-output').textContent='Running...';
+            try{
+                // Ensure command is properly encoded and not truncated
+                const cleanCommand = cmd.replace(/^\s+|\s+$/g, ''); // Remove leading/trailing whitespace
+                console.log(`Executing command: "${cleanCommand}" on router: ${router}`);
+                
+                const data = await fetchJSON('/api/router/command',{
+                    method:'POST',
+                    body:JSON.stringify({
+                        router_name: router,
+                        command: cleanCommand
+                    })
+                });
+                
+                if(data.success && data.output) {
+                    $('cmd-output').textContent = data.output;
+                } else if(data.error) {
+                    $('cmd-output').textContent = `Error: ${data.error}`;
+                } else {
+                    $('cmd-output').textContent = JSON.stringify(data,null,2);
+                }
+            }catch(e){ 
+                $('cmd-output').textContent='Error: '+e.message; 
+                console.error('Command execution error:', e);
+            }
+        }
+        function presetCommand(c){ $('cmd-input').value=c; }
+
+        async function pushConfig(){
+            const router = $('cfg-router-select').value;
+            const lines = $('cfg-commands').value.split(/\n+/).filter(l=>l.trim());
+            if(!router||lines.length===0){ return; }
+            $('cfg-output').textContent='Sending...';
+            try{
+                const data = await fetchJSON('/api/router/config',{method:'POST',body:JSON.stringify({router_name:router,commands:lines})});
+                $('cfg-output').textContent=JSON.stringify(data,null,2);
+            }catch(e){ $('cfg-output').textContent='Error: '+e.message; }
+        }
+
+        async function loadLogs(){
+            const router = $('log-router-select').value; 
+            const type=$('log-type').value;
+            
+            if(!router) {
+                alert('Please select a router');
+                return;
+            }
+            
+            $('logs-output').textContent='Loading logs...';
+            try{ 
+                const data = await fetchJSON(`/api/router/${router}/logs?log_type=${type}`); 
+                
+                if(data.success && data.logs) {
+                    let logOutput = `=== Router Logs for ${router} (${type}) ===\n\n`;
+                    
+                    // Process each log type
+                    Object.keys(data.logs).forEach(logName => {
+                        const log = data.logs[logName];
+                        if(log.success && log.output) {
+                            logOutput += `--- ${logName.toUpperCase()} LOGS ---\n`;
+                            logOutput += log.output + '\n\n';
+                        } else if(log.error) {
+                            logOutput += `--- ${logName.toUpperCase()} LOGS (ERROR) ---\n`;
+                            logOutput += `Error: ${log.error}\n\n`;
+                        }
+                    });
+                    
+                    if(logOutput.length <= 100) { // If no real logs found
+                        logOutput = 'No logs available or logs are empty';
+                    }
+                    
+                    $('logs-output').textContent = logOutput;
+                } else if(data.error) {
+                    $('logs-output').textContent = `Error: ${data.error}`;
+                } else {
+                    $('logs-output').textContent = 'No logs found or unexpected response format';
+                }
+            }catch(e){
+                $('logs-output').textContent='Error: '+e.message;
+                console.error('Logs loading error:', e);
+            }
+        }
+
+        async function loadRouterInfo(){
+            const router = $('info-router-select').value;
+            
+            if(!router) {
+                alert('Please select a router');
+                return;
+            }
+            
+            $('info-output').textContent='Loading router information...';
+            try{ 
+                const data = await fetchJSON(`/api/router/${router}/info`); 
+                
+                if(data.success) {
+                    let infoOutput = `=== Router Information: ${router} ===\n\n`;
+                    infoOutput += `Host: ${data.host}\n`;
+                    infoOutput += `Device Type: ${data.device_type}\n`;
+                    infoOutput += `Timestamp: ${data.timestamp}\n\n`;
+                    
+                    // Version Information
+                    if(data.version_info && data.version_info.success && data.version_info.output) {
+                        infoOutput += `--- VERSION INFORMATION ---\n`;
+                        infoOutput += data.version_info.output + '\n\n';
+                    } else if(data.version_info && data.version_info.error) {
+                        infoOutput += `--- VERSION INFORMATION (ERROR) ---\n`;
+                        infoOutput += `Error: ${data.version_info.error}\n\n`;
+                    }
+                    
+                    // Interface Information
+                    if(data.interfaces_info && data.interfaces_info.success && data.interfaces_info.output) {
+                        infoOutput += `--- INTERFACE INFORMATION ---\n`;
+                        infoOutput += data.interfaces_info.output + '\n\n';
+                    } else if(data.interfaces_info && data.interfaces_info.error) {
+                        infoOutput += `--- INTERFACE INFORMATION (ERROR) ---\n`;
+                        infoOutput += `Error: ${data.interfaces_info.error}\n\n`;
+                    }
+                    
+                    $('info-output').textContent = infoOutput;
+                } else if(data.error) {
+                    $('info-output').textContent = `Error: ${data.error}`;
+                } else {
+                    $('info-output').textContent = 'No router information available or unexpected response format';
+                }
+            }catch(e){ 
+                $('info-output').textContent='Error: '+e.message; 
+                console.error('Router info loading error:', e);
+            }
+        }
+
+        async function backupConfig(){
+            const router = $('backup-router-select').value; $('backup-result').textContent='Backing up...';
+            try{ const data= await fetchJSON(`/api/router/${router}/backup`); $('backup-result').textContent=data.message||JSON.stringify(data); }catch(e){ $('backup-result').textContent='Error: '+e.message; }
+        }
+
+        async function doPing(){
+            const host = $('ping-host').value.trim(); const count=parseInt($('ping-count').value,10)||4; $('ping-output').textContent='Pinging...';
+            try{ const data = await fetchJSON('/api/ping',{method:'POST',body:JSON.stringify({host, count})}); $('ping-output').textContent=JSON.stringify(data,null,2);}catch(e){$('ping-output').textContent='Error: '+e.message;}
+        }
+        async function doTraceroute(){
+            const host = $('tr-host').value.trim(); const max_hops=parseInt($('tr-maxhops').value,10)||30; $('tr-output').textContent='Running...';
+            try{ const data = await fetchJSON('/api/traceroute',{method:'POST',body:JSON.stringify({host, max_hops})}); $('tr-output').textContent=JSON.stringify(data,null,2);}catch(e){$('tr-output').textContent='Error: '+e.message;}
+        }
+
+        async function connectVManage(){
+            const payload={name:$('vm-name').value.trim(),host:$('vm-host').value.trim(),username:$('vm-user').value.trim(),password:$('vm-pass').value, port: parseInt($('vm-port').value,10)||443};
+            $('vmanage-connect-status').textContent='Connecting...';
+            try{ const data= await fetchJSON('/api/vmanage/connect',{method:'POST',body:JSON.stringify(payload)}); $('vmanage-connect-status').textContent=data.message||'Connected'; loadVManageSummary(); }catch(e){ $('vmanage-connect-status').textContent='Error: '+e.message; }
+        }
+
+        // Backwards compatibility stub (new multi-tenant UI uses refreshVManageAll / setActiveVManage)
+        async function loadVManageSummary(){
+            await refreshVManageAll();
+            if(vmanageInstances.length>0 && !activeVManage){
+                setActiveVManage(vmanageInstances[0]);
+            } else if(activeVManage){
+                // reload tenants/devices quietly
+                loadTenantsForActive();
+            }
+        }
+
+        // Patch existing loadDevices to refresh selects
+        const originalLoadDevices = loadDevices;
+        loadDevices = async function(){
+            await originalLoadDevices();
+            try{ const res = await fetchJSON('/api/router/list'); refreshRouterSelects(res.routers||[]);}catch(_){/* ignore */}
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(()=>{ loadDevices(); }, 800); });
+        async function loadBackupFiles(){
+            const container = $('backup-files'); container.textContent='Loading...';
+            try{ const data = await fetchJSON('/api/backup/files'); if(data.files.length===0){ container.textContent='No backup files'; return; }
+                container.innerHTML = '<table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#f1f3f5;"><th style="padding:4px;border:1px solid #dee2e6;">File</th><th style="padding:4px;border:1px solid #dee2e6;">Size</th><th style="padding:4px;border:1px solid #dee2e6;">Modified</th><th style="padding:4px;border:1px solid #dee2e6;">Action</th></tr></thead><tbody>' +
+                    data.files.map(f=>`<tr><td style='padding:4px;border:1px solid #dee2e6;'>${f.filename}</td><td style='padding:4px;border:1px solid #dee2e6;'>${(f.size_bytes/1024).toFixed(1)} KB</td><td style='padding:4px;border:1px solid #dee2e6;'>${new Date(f.modified*1000).toLocaleString()}</td><td style='padding:4px;border:1px solid #dee2e6;'><a class='btn btn-outline' style='padding:2px 6px;font-size:0.6rem;' href='/api/backup/download/${f.filename}'>Download</a></td></tr>`).join('')+ '</tbody></table>';
+            }catch(e){ container.textContent='Error: '+e.message; }
+        }
+
+        // Load templates (if section exists) after summary
+        async function loadVManageTemplates(){
+            try{
+                if(!vmanageInstances.length){ $('vmanage-templates').textContent='No vManage connection'; return; }
+                const name = activeVManage || vmanageInstances[0];
+                const templates = await fetchJSON(`/api/vmanage/${name}/templates`);
+                if(templates.success && Array.isArray(templates.templates)){
+                    $('vmanage-templates').innerHTML = templates.templates.slice(0,50).map(t=>`<div style='padding:4px;border-bottom:1px solid #eee;'>${t.templateName||t.name||t.templateId}</div>`).join('');
+                } else {
+                    $('vmanage-templates').textContent='Templates not available';
+                }
+            }catch(e){ $('vmanage-templates').textContent='Templates error: '+e.message; }
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{ loadBackupFiles(); });
+        // Footer legacy link injection
+        (function(){
+            const footer = document.createElement('div');
+            footer.style.cssText='position:fixed;right:8px;bottom:6px;font-size:11px;color:#6c757d;';
+            footer.innerHTML = "<a href='/legacy' style='color:#6c757d;text-decoration:none;'>Legacy UI</a>";
+            document.body.appendChild(footer);
+        })();
+    </script>
+</body>
+</html>

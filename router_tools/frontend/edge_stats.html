@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Edge Statistics</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" />
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; background:#0b1020; color:#e8eaf6; }
+    .container { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+    header a { color:#9dc1ff; text-decoration:none; font-size:14px; }
+    h1 { font-size:20px; margin:0; }
+    .grid { display:grid; grid-template-columns: 1fr 3fr; gap: 16px; }
+    .card { background:#121a33; border:1px solid #1f2a4d; border-radius:10px; padding:14px; }
+    .card h2 { font-size:16px; margin:0 0 10px 0; color:#c6d4ff; }
+    label { display:block; font-size:12px; color:#a7b4da; margin-top:10px; }
+    select, input { width:100%; padding:8px 10px; border-radius:8px; border:1px solid #27345f; background:#0d1430; color:#e8eaf6; }
+    button { background:#2a6cff; color:white; border:0; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    button.secondary { background:#22325e; }
+    .row { display:flex; gap:8px; align-items:end; }
+    canvas { width:100% !important; height:320px !important; }
+    small { color:#9fb2df; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Edge Interface & TLOC Statistics</h1>
+      <a href="/" title="Back">← Back to Dashboard</a>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Filters</h2>
+        <label>vManage Session</label>
+        <select id="sessionSelect"></select>
+        <label>Tenant</label>
+        <select id="tenantSelect"></select>
+        <label>Device (system-ip)</label>
+        <select id="deviceSelect"></select>
+        <label>Interface (optional)</label>
+        <input id="ifaceInput" placeholder="e.g. GigabitEthernet1 or ge0/0" />
+        <div class="row">
+          <div style="flex:1">
+            <label>Time Range</label>
+            <select id="rangeSelect">
+              <option>last 1 hour</option>
+              <option>last 3 hours</option>
+              <option selected>last 24 hours</option>
+              <option>last 7 days</option>
+            </select>
+          </div>
+          <div style="width:160px">
+            <label>Interval</label>
+            <select id="intervalSelect">
+              <option>5min</option>
+              <option selected>1hour</option>
+              <option>1day</option>
+            </select>
+          </div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="loadBtn">Load Statistics</button>
+          <button class="secondary" id="refreshDevicesBtn">Refresh Devices</button>
+        </div>
+        <small id="statusNote"></small>
+      </div>
+
+      <div class="card">
+        <h2>Interface Statistics</h2>
+        <canvas id="ifaceChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>TLOC Statistics</h2>
+      <div class="row">
+        <input id="tlocColor" placeholder="color (optional), e.g. mpls, biz-internet" style="flex:1" />
+        <button id="loadTlocBtn">Load TLOC</button>
+      </div>
+      <canvas id="tlocChart"></canvas>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    const sessionSelect = document.getElementById('sessionSelect');
+    const tenantSelect = document.getElementById('tenantSelect');
+    const deviceSelect = document.getElementById('deviceSelect');
+    const rangeSelect = document.getElementById('rangeSelect');
+    const intervalSelect = document.getElementById('intervalSelect');
+    const ifaceInput = document.getElementById('ifaceInput');
+    const statusNote = document.getElementById('statusNote');
+    const tlocColor = document.getElementById('tlocColor');
+
+    let ifaceChart, tlocChart;
+
+    async function api(path, opts) {
+      const r = await fetch(path, opts);
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    function setStatus(msg) { statusNote.textContent = msg; }
+
+    async function loadSessions() {
+      const data = await api('/api/vmanage/list');
+      sessionSelect.innerHTML = data.vmanage_connections.map(n => `<option value="${n}">${n}</option>`).join('');
+      if (data.vmanage_connections.length) {
+        await loadTenants();
+      }
+    }
+
+    async function loadTenants() {
+      const name = sessionSelect.value;
+      if (!name) return;
+      const t = await api(`/api/vmanage/${encodeURIComponent(name)}/tenants`);
+      const tenants = t.tenants || t.data || [];
+      tenantSelect.innerHTML = `<option value="">(no tenant)</option>` + tenants.map(x => `<option value="${x.tenantId || x.tenant_id || x.id}">${x.tenantName || x.name || x.id}</option>`).join('');
+      await refreshDevices();
+    }
+
+    async function switchTenantIfNeeded() {
+      const name = sessionSelect.value;
+      const tenantId = tenantSelect.value;
+      if (tenantId) {
+        await api(`/api/vmanage/${encodeURIComponent(name)}/tenant/switch`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tenant_id: tenantId })
+        });
+        await api(`/api/vmanage/${encodeURIComponent(name)}/tenant/refresh`, { method: 'POST' });
+      }
+    }
+
+    function normalizeDevices(arr) {
+      if (!Array.isArray(arr)) return [];
+      const out = [];
+      const seen = new Set();
+      for (const d of arr) {
+        const ip = d['system-ip'] || d.system_ip || d.systemIp || d.deviceIp || d.device_ip;
+        const type = (d['device-type'] || d.deviceType || d.personality || '').toLowerCase();
+        if (!ip || seen.has(ip)) continue;
+        if (type.includes('vedge') || type.includes('cedge') || type === 'edge') {
+          seen.add(ip);
+          out.push({ ip, hostname: d.hostname || d.host_name || d.deviceModel, type });
+        }
+      }
+      return out;
+    }
+
+    async function refreshDevices() {
+      const name = sessionSelect.value;
+      if (!name) return;
+      await switchTenantIfNeeded();
+      const ed = await api(`/api/vmanage/${encodeURIComponent(name)}/edge-devices?t=${Date.now()}`);
+      const devices = normalizeDevices(ed.devices || ed.data || []);
+      deviceSelect.innerHTML = devices.map(d => `<option value="${d.ip}">${d.hostname || d.ip} (${d.ip})</option>`).join('');
+      setStatus(`Loaded ${devices.length} edges (source: ${ed.source_endpoint || 'n/a'})`);
+    }
+
+    function ensureChart(canvasId, existing, config) {
+      if (existing) existing.destroy();
+      const ctx = document.getElementById(canvasId).getContext('2d');
+      return new Chart(ctx, config);
+    }
+
+    function lineConfig(labels, datasets, title) {
+      return {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' }, title: { display: true, text: title, color:'#c6d4ff' } },
+          scales: { x: { ticks: { color:'#a7b4da' } }, y: { ticks: { color:'#a7b4da' } } }
+        }
+      };
+    }
+
+    function toSeries(data, yKey, label, color) {
+      const labels = data.map(p => p.entry_time || p.entryTime || p.statisticsTime || p.vdeviceData || '').map(String);
+      const values = data.map(p => p[yKey] ?? p.rx_kbps ?? p.tx_kbps ?? p.loss ?? 0);
+      return { labels, dataset: { label, data: values, borderColor: color, borderWidth: 2, pointRadius: 0 } };
+    }
+
+    async function loadInterfaceStats() {
+      const name = sessionSelect.value;
+      const deviceIp = deviceSelect.value;
+      if (!name || !deviceIp) return;
+      await switchTenantIfNeeded();
+      const body = { device_ip: deviceIp, interface: ifaceInput.value || undefined, time_range: rangeSelect.value, interval: intervalSelect.value };
+      const res = await api(`/api/vmanage/${encodeURIComponent(name)}/stats/interface`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = res.data || res.entries || res.stats || [];
+      const rx = toSeries(data, 'rx_kbps', 'RX kbps', '#5ec8e5');
+      const tx = toSeries(data, 'tx_kbps', 'TX kbps', '#8f7dff');
+      const labels = rx.labels.length >= tx.labels.length ? rx.labels : tx.labels;
+      ifaceChart = ensureChart('ifaceChart', ifaceChart, lineConfig(labels, [rx.dataset, tx.dataset], `Interface ${ifaceInput.value || '(all)'} - ${deviceIp}`));
+      setStatus(`Interface stats loaded from ${res.source_endpoint || 'statistics/interface'}`);
+    }
+
+    async function loadTlocStats() {
+      const name = sessionSelect.value;
+      const deviceIp = deviceSelect.value;
+      if (!name || !deviceIp) return;
+      await switchTenantIfNeeded();
+      const body = { device_ip: deviceIp, color: tlocColor.value || undefined, time_range: rangeSelect.value, interval: intervalSelect.value };
+      const res = await api(`/api/vmanage/${encodeURIComponent(name)}/stats/tloc`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const data = res.data || [];
+      const loss = toSeries(data, 'loss', 'Loss %', '#ff6b6b');
+      const jitter = toSeries(data, 'jitter', 'Jitter ms', '#ffd166');
+      const labels = loss.labels.length >= jitter.labels.length ? loss.labels : jitter.labels;
+      tlocChart = ensureChart('tlocChart', tlocChart, lineConfig(labels, [loss.dataset, jitter.dataset], `TLOC ${tlocColor.value || '(all)'} - ${deviceIp}`));
+      setStatus(`TLOC stats loaded from ${res.source_endpoint || 'statistics/tloc'}`);
+    }
+
+    document.getElementById('loadBtn').addEventListener('click', loadInterfaceStats);
+    document.getElementById('refreshDevicesBtn').addEventListener('click', refreshDevices);
+    document.getElementById('loadTlocBtn').addEventListener('click', loadTlocStats);
+    sessionSelect.addEventListener('change', loadTenants);
+    tenantSelect.addEventListener('change', refreshDevices);
+
+    loadSessions().catch(err => setStatus(err.message));
+  </script>
+</body>
+</html>
